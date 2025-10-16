@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Estoque Pessoal (Estilo App)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-pink': '#e91e63', // Um rosa vibrante para destaque
+                        'soft-pink': '#f8bbd0',
+                        'light-bg': '#f5f5f5', // Fundo bem claro
+                        'dark-text': '#262626',
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest/dist/coco-ssd.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        html, body { height: 100%; font-family: 'Inter', sans-serif; }
+        /* Fundo claro para o corpo */
+        body { background-color: #f5f5f5; color: #262626; }
+        /* Estilos do Scanner QR */
+        #qr-reader { width: 100%; max-width: 400px; border-radius: 8px; overflow: hidden; border: 2px solid #e91e63; }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Estilos para o modal da IA */
+        #ai-modal { background-color: rgba(0, 0, 0, 0.8); }
+        #video-container { position: relative; }
+        #ai-canvas { position: absolute; top: 0; left: 0; }
+        /* Ajuste para inputs no tema claro */
+        input:not([type="checkbox"]), select {
+            border: 1px solid #e5e7eb !important;
+            background-color: white !important;
+            color: #262626 !important;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+    <div class="container mx-auto p-0 flex-grow">
+        
+        <header class="bg-white shadow-md mb-4 sticky top-0 z-10">
+            <div class="p-4 flex justify-between items-center border-b border-gray-100">
+                <h1 class="text-2xl font-bold text-primary-pink">Estoque Pessoal</h1>
+                <div class="flex items-center space-x-3 text-dark-text">
+                    <i data-lucide="bell" class="w-6 h-6 hover:text-primary-pink cursor-pointer"></i>
+                    <i data-lucide="user-circle" class="w-6 h-6 hover:text-primary-pink cursor-pointer"></i>
+                </div>
+            </div>
+
+            <div class="p-4 bg-light-bg">
+                <div class="relative">
+                    <input type="text" id="product-search" placeholder="Busque por produtos ou IDs..." class="w-full bg-white border border-gray-200 rounded-lg py-2 pl-10 pr-4 text-dark-text focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-inner">
+                    <i data-lucide="search" class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                </div>
+            </div>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 md:p-6">
+            
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+
+                <h2 class="text-xl font-semibold mb-3 border-b border-gray-100 pb-2 text-dark-text flex items-center">
+                    <i data-lucide="zap" class="mr-2 text-primary-pink w-5 h-5"></i> Ações Rápidas
+                </h2>
+                <div class="grid grid-cols-4 gap-4 mb-8 text-center">
+                    <button id="ai-register-btn-quick" title="Cadastrar com Foto (IA)" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
+                        <i data-lucide="camera" class="w-7 h-7 text-primary-pink mb-1"></i>
+                        <span class="text-xs font-medium">Cad. IA</span>
+                    </button>
+                    <button id="start-scan-btn-quick" title="Iniciar Scanner" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
+                        <i data-lucide="scan-line" class="w-7 h-7 text-primary-pink mb-1"></i>
+                        <span class="text-xs font-medium">Scanner</span>
+                    </button>
+                    <button id="manual-entry-btn" title="Entrada Manual" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
+                        <i data-lucide="package-plus" class="w-7 h-7 text-primary-pink mb-1"></i>
+                        <span class="text-xs font-medium">Entrada</span>
+                    </button>
+                    <button id="low-stock-alert-btn" title="Estoque Baixo" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
+                        <i data-lucide="alert-triangle" class="w-7 h-7 text-red-500 mb-1"></i>
+                        <span class="text-xs font-medium">Alertas</span>
+                    </button>
+                </div>
+
+                <h2 class="text-xl font-semibold mb-4 border-b border-gray-100 pb-2 text-dark-text flex items-center">
+                    <i data-lucide="plus-circle" class="mr-2 w-5 h-5 text-primary-pink"></i> Novo Produto
+                </h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="product-name" class="block text-sm font-medium text-dark-text mb-1">Nome do Produto</label>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="product-name" placeholder="Ex: Resma Papel A4" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
+                            <button id="ai-register-btn" title="Cadastrar com Foto (IA)" class="bg-gray-200 hover:bg-gray-300 p-2 rounded-lg transition text-dark-text">
+                                <i data-lucide="camera" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="product-qty" class="block text-sm font-medium text-dark-text mb-1">Qtd. Inicial (Embalagem)</label>
+                            <input type="number" id="product-qty" value="1" min="0" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
+                        </div>
+                        <div>
+                            <label for="product-qty-package" class="block text-sm font-medium text-dark-text mb-1">Itens p/ Embalagem (Ex: 500)</label>
+                            <input type="number" id="product-qty-package" value="1" min="1" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                         <label for="product-unit" class="block text-sm font-medium text-dark-text mb-1">Unidade de Consumo (Ex: Folhas)</label>
+                         <input type="text" id="product-unit" value="unidade" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
+                    </div>
+
+                    <button id="add-product-btn" class="w-full bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center shadow-lg">
+                        <i data-lucide="plus-circle" class="mr-2"></i> Adicionar Produto
+                    </button>
+                </div>
+
+                <h2 class="text-xl font-semibold mt-8 mb-4 border-b border-gray-100 pb-2 text-dark-text flex items-center">
+                    <i data-lucide="list" class="mr-2 w-5 h-5 text-primary-pink"></i> Estoque Atual
+                </h2>
+                <div id="product-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
+                    <p class="text-gray-500 text-sm">Nenhum produto cadastrado ainda.</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
+                <h2 class="text-2xl font-semibold mb-4 text-center text-dark-text">
+                    <i data-lucide="scan-line" class="inline-block mr-2 text-primary-pink"></i> Scanner de QR Code
+                </h2>
+                
+                <div id="scanner-container" class="w-full flex flex-col items-center">
+                    <div id="qr-reader" class="mb-4 bg-gray-100 border-primary-pink"></div>
+                    <button id="start-scan-btn" class="bg-primary-pink hover:bg-pink-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center text-lg shadow-md">
+                        <i data-lucide="camera" class="mr-2"></i> Iniciar Scanner
+                    </button>
+                </div>
+
+                <div id="scan-result-container" class="hidden w-full text-center fade-in">
+                    <p class="text-gray-500 mb-2">Produto Encontrado:</p>
+                    <p id="scanned-product-name" class="text-2xl font-bold text-primary-pink mb-1"></p>
+                    <p id="scanned-product-details" class="text-sm text-gray-500 mb-4 font-mono"></p>
+                    <p class="text-lg mb-4 text-dark-text">
+                        Total em Estoque: <span id="scanned-product-qty" class="font-bold"></span> 
+                        (<span id="scanned-product-unit-total" class="font-semibold"></span>)
+                    </p>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <button id="decrease-qty-embalagem-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-md">
+                            <i data-lucide="minus" class="mr-1 w-5 h-5"></i> Saída (1 Embalagem)
+                        </button>
+                        <button id="increase-qty-embalagem-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-md">
+                            <i data-lucide="plus" class="mr-1 w-5 h-5"></i> Entrada (1 Embalagem)
+                        </button>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-gray-100 rounded-lg">
+                        <p class="text-sm font-medium text-dark-text mb-2">Controle Fracionado:</p>
+                        <div class="flex justify-center items-center gap-2">
+                            <input type="number" id="fractional-qty-input" value="100" min="1" class="w-20 rounded-lg px-2 py-1 text-center text-dark-text focus:ring-primary-pink">
+                            <span id="fractional-unit-label" class="text-sm text-gray-700">unidades</span>
+                            <button id="decrease-qty-fractional-btn" class="bg-red-400 hover:bg-red-500 text-white font-bold py-1 px-3 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-sm">
+                                <i data-lucide="chevrons-down" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button id="close-scan-result-btn" class="mt-4 text-gray-500 hover:text-primary-pink transition">Fechar</button>
+                </div>
+                <div id="feedback-message" class="mt-4 text-center font-medium hidden"></div>
+            </div>
+        </main>
+    </div>
+
+    <div id="ai-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl text-center text-dark-text">
+            <h3 class="text-2xl font-bold mb-4">Cadastro por Imagem (IA)</h3>
+            <p id="ai-status" class="text-primary-pink mb-4">Carregando modelo de IA... Por favor, aguarde.</p>
+            <div id="video-container" class="mb-4 rounded-lg overflow-hidden relative w-full aspect-video bg-gray-200 flex items-center justify-center">
+                <video id="ai-video" autoplay playsinline class="w-full h-full"></video>
+                <canvas id="ai-canvas" class="w-full h-full"></canvas>
+            </div>
+            <div id="ai-results" class="mb-4">
+                <p class="text-gray-600">Aponte a câmera para um objeto. Clique no nome para selecioná-lo:</p>
+                <div id="ai-buttons-container" class="flex flex-wrap justify-center gap-2 mt-2"></div>
+            </div>
+            <button id="ai-cancel-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition shadow-md">Cancelar</button>
+        </div>
+    </div>
+
+    <footer class="text-center p-4 text-gray-500 text-sm mt-4 bg-white shadow-inner">
+        <p>Criado com IA (TensorFlow.js), Tailwind CSS e html5-qrcode.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+
+            const productNameInput = document.getElementById('product-name');
+            const productQtyInput = document.getElementById('product-qty');
+            const productQtyPackageInput = document.getElementById('product-qty-package');
+            const productUnitInput = document.getElementById('product-unit');
+            const addProductBtn = document.getElementById('add-product-btn');
+            const productListDiv = document.getElementById('product-list');
+            const startScanBtn = document.getElementById('start-scan-btn');
+            const startScanBtnQuick = document.getElementById('start-scan-btn-quick');
+            const scannerContainer = document.getElementById('scanner-container');
+            const scanResultContainer = document.getElementById('scan-result-container');
+            const feedbackMessage = document.getElementById('feedback-message');
+            const fractionalQtyInput = document.getElementById('fractional-qty-input');
+            const fractionalUnitLabel = document.getElementById('fractional-unit-label');
+            const productSearchInput = document.getElementById('product-search');
+
+            // Elementos da IA
+            const aiRegisterBtn = document.getElementById('ai-register-btn');
+            const aiRegisterBtnQuick = document.getElementById('ai-register-btn-quick');
+            const aiModal = document.getElementById('ai-modal');
+            const aiStatus = document.getElementById('ai-status');
+            const aiVideo = document.getElementById('ai-video');
+            const aiCanvas = document.getElementById('ai-canvas');
+            const aiButtonsContainer = document.getElementById('ai-buttons-container');
+            const aiCancelBtn = document.getElementById('ai-cancel-btn');
+
+            let html5QrCode;
+            let products = [];
+            let lastScannedProductId = null;
+
+            // Variáveis da IA
+            let aiModel = null;
+            let videoStream = null;
+            let detectionInterval = null;
+
+            // --- Gerenciamento de Dados ---
+            function loadProducts() {
+                const storedProducts = localStorage.getItem('stockControlProducts');
+                if (storedProducts) products = JSON.parse(storedProducts);
+                renderProductList();
+            }
+            function saveProducts() {
+                localStorage.setItem('stockControlProducts', JSON.stringify(products));
+            }
+            
+            // Refinamento: Estilo Card e Alerta de Estoque Baixo
+            function renderProductList(filter = '') {
+                productListDiv.innerHTML = '';
+                const filteredProducts = products.filter(p => 
+                    p.name.toLowerCase().includes(filter.toLowerCase()) || 
+                    p.id.includes(filter.toLowerCase())
+                );
+                
+                if (filteredProducts.length === 0) {
+                    productListDiv.innerHTML = `<p class="text-gray-500 text-sm">${filter ? 'Nenhum produto encontrado.' : 'Nenhum produto cadastrado ainda.'}</p>`;
+                    return;
+                }
+
+                const sortedProducts = [...filteredProducts].sort((a, b) => a.name.localeCompare(b.name));
+                
+                sortedProducts.forEach(product => {
+                    const isLowStock = product.quantity <= 5;
+                    const totalUnits = product.quantity * product.qtyPackage;
+                    const stockClass = isLowStock ? 'text-red-500 font-extrabold' : 'text-primary-pink font-extrabold';
+                    
+                    const productElement = document.createElement('div');
+                    productElement.className = `fade-in bg-gray-50 p-4 rounded-lg flex justify-between items-center shadow-sm border ${isLowStock ? 'border-red-300' : 'border-gray-200'}`;
+                    
+                    productElement.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="${isLowStock ? 'box-alert' : 'package'}" class="w-6 h-6 ${isLowStock ? 'text-red-500' : 'text-primary-pink'}"></i>
+                            <div>
+                                <p class="font-semibold text-dark-text">${product.name}</p>
+                                <p class="text-xs text-gray-400 font-mono">ID: ${product.id}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-sm font-medium text-gray-700">${product.unit} (Embalagem): </span>
+                            <span class="text-xl ${stockClass}">${product.quantity}</span>
+                            <p class="text-xs text-gray-500">Total: ${totalUnits} ${product.unit}</p>
+                        </div>
+                        <button data-id="${product.id}" class="delete-btn text-gray-400 hover:text-red-500 transition ml-4">
+                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        </button>
+                    `;
+                    productListDiv.appendChild(productElement);
+                });
+                lucide.createIcons();
+            }
+
+            function showFeedback(message, isError = false) {
+                feedbackMessage.textContent = message;
+                feedbackMessage.className = `mt-4 text-center font-medium ${isError ? 'text-red-500' : 'text-green-500'} fade-in`;
+                feedbackMessage.classList.remove('hidden');
+                setTimeout(() => feedbackMessage.classList.add('hidden'), 4000);
+            }
+
+            // --- Lógica de Produtos Fracionados ---
+            function addProduct() {
+                const name = productNameInput.value.trim();
+                const quantity = parseInt(productQtyInput.value, 10);
+                const qtyPackage = parseInt(productQtyPackageInput.value, 10);
+                const unit = productUnitInput.value.trim();
+
+                if (!name || isNaN(quantity) || quantity < 0 || isNaN(qtyPackage) || qtyPackage < 1 || !unit) {
+                    alert('Por favor, preencha o nome, quantidade inicial (embalagem), quantidade por embalagem e a unidade de consumo.');
+                    return;
+                }
+                
+                const newProduct = { 
+                    id: 'prod-' + Date.now(), 
+                    name: name, 
+                    quantity: quantity,
+                    qtyPackage: qtyPackage, // Quantidade de unidades por embalagem
+                    unit: unit            // Unidade de consumo (folhas, metros, etc.)
+                };
+                
+                products.push(newProduct);
+                saveProducts();
+                renderProductList();
+                productNameInput.value = '';
+                productQtyInput.value = '1';
+                productQtyPackageInput.value = '1';
+                productUnitInput.value = 'unidade';
+                showFeedback(`Produto "${name}" adicionado com sucesso!`);
+            }
+            
+            function deleteProduct(productId) {
+                if (confirm('Tem certeza que deseja excluir este produto?')) {
+                    products = products.filter(p => p.id !== productId);
+                    saveProducts();
+                    renderProductList();
+                    showFeedback('Produto excluído.');
+                }
+            }
+            
+            // Refinamento: Suporte para Entrada/Saída de Embalagem e Fracionado
+            function updateQuantity(productId, change, isFractional = false) {
+                const product = products.find(p => p.id === productId);
+                if (product) {
+                    let changeInEmbalagem = change;
+
+                    if (isFractional) {
+                        const fractionalChange = parseInt(fractionalQtyInput.value, 10);
+                        if (isNaN(fractionalChange) || fractionalChange <= 0) {
+                            showFeedback('Insira uma quantidade fracionada válida.', true);
+                            return;
+                        }
+                        // Calcula a mudança total em unidades de consumo
+                        const currentTotalUnits = product.quantity * product.qtyPackage;
+                        const newTotalUnits = currentTotalUnits + (change > 0 ? fractionalChange : -fractionalChange);
+
+                        if (newTotalUnits < 0) {
+                             showFeedback('A saída fracionada excede o estoque atual.', true);
+                             return;
+                        }
+
+                        // Recalcula a quantidade de embalagens (arredondamento para cima para ter pelo menos 1 item)
+                        const newQuantity = Math.max(0, Math.ceil(newTotalUnits / product.qtyPackage));
+                        changeInEmbalagem = newQuantity - product.quantity; // O quanto a qty de embalagem mudou
+
+                        // Aqui optamos por não mudar a quantidade de embalagem, mas sim a quantidade de unidades
+                        // Para simplificar e representar melhor o estoque, vamos manter a lógica de embalagens.
+                        // O uso de Math.ceil garante que se houver 1 folha, o estoque é 1 embalagem (incompleta).
+                        product.quantity = newQuantity;
+
+                    } else {
+                        // Entrada/Saída de embalagens inteiras
+                        product.quantity = Math.max(0, product.quantity + changeInEmbalagem);
+                    }
+                    
+                    saveProducts();
+                    renderProductList(productSearchInput.value); // Renderiza com filtro ativo, se houver
+                    
+                    // Atualiza a visualização do scanner
+                    const totalUnits = product.quantity * product.qtyPackage;
+                    document.getElementById('scanned-product-qty').textContent = product.quantity;
+                    document.getElementById('scanned-product-unit-total').textContent = `(${totalUnits} ${product.unit})`;
+
+                    showFeedback(`${changeInEmbalagem > 0 ? 'Entrada' : 'Saída'} registrada para "${product.name}".`);
+                }
+            }
+            
+            // --- Lógica do Scanner de QR Code ---
+            function onScanSuccess(decodedText) {
+                const product = products.find(p => p.id === decodedText);
+                if (product) {
+                    lastScannedProductId = product.id;
+                    document.getElementById('scanned-product-name').textContent = product.name;
+                    document.getElementById('scanned-product-details').textContent = `ID: ${product.id} | ${product.qtyPackage} ${product.unit} p/ Embalagem`;
+                    
+                    // Atualiza a seção de controle fracionado
+                    fractionalUnitLabel.textContent = product.unit;
+                    fractionalQtyInput.value = Math.floor(product.qtyPackage / 2) || 1; // Sugere metade da embalagem
+                    
+                    // Atualiza a exibição de estoque
+                    const totalUnits = product.quantity * product.qtyPackage;
+                    document.getElementById('scanned-product-qty').textContent = product.quantity;
+                    document.getElementById('scanned-product-unit-total').textContent = `(${totalUnits} ${product.unit})`;
+                    
+                    // Atualiza os textos dos botões
+                    document.getElementById('decrease-qty-embalagem-btn').innerHTML = `<i data-lucide="minus" class="mr-1 w-5 h-5"></i> Saída (1 Embalagem)`;
+                    document.getElementById('increase-qty-embalagem-btn').innerHTML = `<i data-lucide="plus" class="mr-1 w-5 h-5"></i> Entrada (1 Embalagem)`;
+                    lucide.createIcons();
+
+
+                    scannerContainer.classList.add('hidden');
+                    scanResultContainer.classList.remove('hidden');
+                    stopScanner();
+                } else {
+                    showFeedback(`Produto com ID "${decodedText}" não encontrado.`, true);
+                }
+            }
+            function onScanFailure(error) { /* Silencioso */ }
+            
+            function startScanner() {
+                if (!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader");
+                const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+                
+                // Verifica se já está escaneando antes de iniciar
+                if (html5QrCode.isScanning) {
+                    stopScanner();
+                    return;
+                }
+
+                html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
+                    .then(() => {
+                        startScanBtn.innerHTML = '<i data-lucide="scan-line" class="mr-2"></i> Parar Scanner';
+                        startScanBtn.classList.replace('bg-primary-pink', 'bg-red-500');
+                        startScanBtn.classList.replace('hover:bg-pink-700', 'hover:bg-red-600');
+                        lucide.createIcons();
+                    }).catch(err => alert("Erro ao acessar a câmera. Verifique as permissões (e certifique-se de estar em HTTPS/localhost)."));
+            }
+            
+            function stopScanner() {
+                if (html5QrCode && html5QrCode.isScanning) {
+                    html5QrCode.stop().then(() => {
+                        startScanBtn.innerHTML = '<i data-lucide="camera" class="mr-2"></i> Iniciar Scanner';
+                        startScanBtn.classList.replace('bg-red-500', 'bg-primary-pink');
+                        startScanBtn.classList.replace('hover:bg-red-600', 'hover:bg-pink-700');
+                        lucide.createIcons();
+                    }).catch(err => {
+                        // console.error("Erro ao parar scanner:", err); 
+                    });
+                }
+            }
+            
+            // --- LÓGICA DA IA ---
+            async function loadAIModel() {
+                if (!aiModel) {
+                    try {
+                        aiModel = await cocoSsd.load();
+                        aiStatus.textContent = "Modelo carregado! Aponte para um objeto.";
+                        aiStatus.classList.replace('text-primary-pink', 'text-green-500');
+                    } catch (err) {
+                        console.error("Erro ao carregar modelo de IA:", err);
+                        aiStatus.textContent = "Erro ao carregar modelo.";
+                        aiStatus.classList.replace('text-primary-pink', 'text-red-500');
+                    }
+                }
+            }
+            
+            async function startAIDetection() {
+                aiModal.classList.remove('hidden');
+                await loadAIModel();
+
+                try {
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    aiVideo.srcObject = videoStream;
+                    aiVideo.onloadedmetadata = () => {
+                        aiVideo.play();
+                        detectionInterval = setInterval(predictFrame, 200); 
+                    };
+                } catch (err) {
+                    console.error("Erro ao acessar a câmera para IA:", err);
+                    aiStatus.textContent = "Não foi possível acessar a câmera. Verifique as permissões.";
+                    aiStatus.classList.replace('text-primary-pink', 'text-red-500');
+                }
+            }
+
+            function stopAIDetection() {
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                }
+                if (detectionInterval) {
+                    clearInterval(detectionInterval);
+                    detectionInterval = null;
+                }
+                aiModal.classList.add('hidden');
+                const ctx = aiCanvas.getContext('2d');
+                ctx.clearRect(0, 0, aiCanvas.width, aiCanvas.height);
+                aiButtonsContainer.innerHTML = '';
+            }
+
+            async function predictFrame() {
+                if (!aiModel || aiVideo.paused || aiVideo.ended) return;
+
+                const predictions = await aiModel.detect(aiVideo);
+                
+                aiCanvas.width = aiVideo.videoWidth;
+                aiCanvas.height = aiVideo.videoHeight;
+
+                const ctx = aiCanvas.getContext('2d');
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                ctx.font = '16px Inter'; // Configura a fonte para o texto
+                
+                aiButtonsContainer.innerHTML = '';
+                const detectedClasses = new Set(); 
+
+                predictions.forEach(prediction => {
+                    // Desenha a caixa
+                    ctx.beginPath();
+                    ctx.rect(...prediction.bbox);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#e91e63'; 
+                    ctx.fillStyle = '#e91e63';
+                    ctx.stroke();
+                    // Desenha o fundo do texto
+                    const text = `${prediction.class} (${Math.round(prediction.score * 100)}%)`;
+                    const textWidth = ctx.measureText(text).width + 8;
+                    const textHeight = 20; 
+                    ctx.fillRect(prediction.bbox[0], prediction.bbox[1] > textHeight ? prediction.bbox[1] - textHeight : 0, textWidth, textHeight);
+                    // Desenha o texto
+                    ctx.fillStyle = 'white';
+                    ctx.fillText(text, prediction.bbox[0] + 4, prediction.bbox[1] > 10 ? prediction.bbox[1] - 5 : 15);
+                    ctx.fillStyle = '#e91e63';
+                    
+                    if (!detectedClasses.has(prediction.class)) {
+                        detectedClasses.add(prediction.class);
+                        const btn = document.createElement('button');
+                        const className = prediction.class.charAt(0).toUpperCase() + prediction.class.slice(1);
+                        btn.textContent = className;
+                        btn.className = "bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md text-sm";
+                        btn.onclick = () => {
+                            productNameInput.value = className;
+                            stopAIDetection();
+                        };
+                        aiButtonsContainer.appendChild(btn);
+                    }
+                });
+            }
+
+
+            // --- Event Listeners ---
+            addProductBtn.addEventListener('click', addProduct);
+            
+            // Botão Principal e Botão Rápido para Scanner
+            const toggleScanner = () => {
+                if (html5QrCode && html5QrCode.isScanning) stopScanner();
+                else {
+                    scanResultContainer.classList.add('hidden');
+                    scannerContainer.classList.remove('hidden');
+                    startScanner();
+                }
+            };
+            startScanBtn.addEventListener('click', toggleScanner);
+            startScanBtnQuick.addEventListener('click', toggleScanner);
+
+            // Botões de IA
+            aiRegisterBtn.addEventListener('click', startAIDetection);
+            aiRegisterBtnQuick.addEventListener('click', startAIDetection);
+
+            // Controle de Estoque na Leitura de QR
+            document.getElementById('increase-qty-embalagem-btn').addEventListener('click', () => { 
+                if (lastScannedProductId) updateQuantity(lastScannedProductId, 1); 
+            });
+            document.getElementById('decrease-qty-embalagem-btn').addEventListener('click', () => { 
+                if (lastScannedProductId) updateQuantity(lastScannedProductId, -1); 
+            });
+            document.getElementById('decrease-qty-fractional-btn').addEventListener('click', () => {
+                 // Saída fracionada: change é -1 para indicar saída, mas a lógica de cálculo está em updateQuantity
+                if (lastScannedProductId) updateQuantity(lastScannedProductId, -1, true); 
+            });
+
+            // Fechar Resultado do Scan
+            document.getElementById('close-scan-result-btn').addEventListener('click', () => {
+                scanResultContainer.classList.add('hidden');
+                scannerContainer.classList.remove('hidden');
+                lastScannedProductId = null;
+                // Assegura que o botão de scanner volte ao estado inicial
+                stopScanner();
+            });
+            
+            // Deleção de Produto
+            productListDiv.addEventListener('click', (e) => {
+                const deleteButton = e.target.closest('.delete-btn');
+                if (deleteButton) deleteProduct(deleteButton.dataset.id);
+            });
+
+            // Filtro de Busca
+            productSearchInput.addEventListener('input', (e) => {
+                renderProductList(e.target.value);
+            });
+            
+            // Botão de Alerta (apenas filtro simples por enquanto)
+            document.getElementById('low-stock-alert-btn').addEventListener('click', () => {
+                 const lowStockProducts = products.filter(p => p.quantity <= 5);
+                 if (lowStockProducts.length > 0) {
+                     renderProductList(''); // Limpa o filtro de busca
+                     renderProductList('Baixo Estoque'); // Filtra
+                     showFeedback(`Exibindo ${lowStockProducts.length} itens com estoque baixo ($\le 5$ embalagens).`);
+                 } else {
+                     showFeedback('Nenhum item com estoque baixo.', false);
+                     renderProductList('');
+                 }
+            });
+
+
+            loadProducts();
+        });
+    </script>
+</body>
+</html>
