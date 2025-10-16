@@ -3,10 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estoque Pessoal - Controle com Scanner</title>
-    <!-- Tailwind CSS -->
+    <title>Controle de Estoque Pessoal (Estilo App)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Configuração de cores do Tailwind para Pink/Magenta -->
     <script>
         tailwind.config = {
             theme: {
@@ -21,15 +19,11 @@
             }
         }
     </script>
-    <!-- Bibliotecas de IA (TensorFlow.js) -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest/dist/coco-ssd.min.js"></script>
-    <!-- Biblioteca para leitura de QR Code -->
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-    <!-- Ícones (Lucide) -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
-    <!-- Configurações de PWA/Ícone -->
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="apple-touch-icon" href="favicon.png"> 
     <link rel="manifest" href="manifest.json">
@@ -42,7 +36,7 @@
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         /* Estilos para o modal e inputs */
-        #ai-modal, #category-modal, #edit-modal, #confirm-modal { background-color: rgba(0, 0, 0, 0.8); }
+        #ai-modal, #category-modal { background-color: rgba(0, 0, 0, 0.8); }
         #video-container { position: relative; }
         #ai-canvas { position: absolute; top: 0; left: 0; }
         input:not([type="checkbox"]), select {
@@ -50,45 +44,23 @@
             background-color: white !important;
             color: #262626 !important;
         }
-        .product-image {
-            width: 48px; 
-            height: 48px; 
-            object-fit: cover;
-            border-radius: 6px;
-        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
     <div class="container mx-auto p-0 flex-grow">
         
-        <!-- HEADER (Com o Novo Logo SVG) -->
         <header class="bg-white shadow-md mb-4 sticky top-0 z-10">
             <div class="p-4 flex justify-between items-center border-b border-gray-100">
-                
-                <!-- NOVO LOGO INLINE SVG -->
-                <h1 class="text-2xl font-bold text-primary-pink flex items-center">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="mr-2">
-                        <!-- Fundo da Caixa (Estoque) -->
-                        <rect x="3" y="6" width="18" height="15" rx="2" fill="#e91e63" fill-opacity="0.1"/>
-                        <!-- Borda da Caixa -->
-                        <path d="M21 15V6L12 3L3 6V15" stroke="#e91e63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <!-- Checkmark (Controle) -->
-                        <path d="M8 12L12 16L18 10" stroke="#e91e63" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <text x="50%" y="100%" dominant-baseline="central" text-anchor="middle" font-size="0" fill="#e91e63"></text>
-                    </svg>
-                    Stock
-                </h1>
-                
+                <h1 class="text-2xl font-bold text-primary-pink">Estoque Pessoal</h1>
                 <div class="flex items-center space-x-3 text-dark-text">
                     <i data-lucide="bell" id="alert-icon" class="w-6 h-6 hover:text-primary-pink cursor-pointer text-gray-400"></i>
-                    <i data-lucide="settings" id="open-settings-btn" class="w-6 h-6 hover:text-primary-pink cursor-pointer"></i>
+                    <i data-lucide="settings" class="w-6 h-6 hover:text-primary-pink cursor-pointer"></i>
                 </div>
             </div>
 
-            <!-- Barra de Busca -->
             <div class="p-4 bg-light-bg">
                 <div class="relative">
-                    <input type="text" id="product-search" placeholder="Busque por produtos, IDs ou categorias..." class="w-full bg-white border border-gray-200 rounded-lg py-2 pl-10 pr-4 text-dark-text focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-inner">
+                    <input type="text" id="product-search" placeholder="Busque por produtos ou IDs..." class="w-full bg-white border border-gray-200 rounded-lg py-2 pl-10 pr-4 text-dark-text focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-inner">
                     <i data-lucide="search" class="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                 </div>
             </div>
@@ -96,66 +68,47 @@
 
         <main class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 md:p-6">
             
-            <!-- COLUNA DE CADASTRO E ESTOQUE -->
             <div class="bg-white p-6 rounded-xl shadow-lg">
 
-                <!-- AÇÕES RÁPIDAS -->
                 <h2 class="text-xl font-semibold mb-3 border-b border-gray-100 pb-2 text-dark-text flex items-center">
                     <i data-lucide="zap" class="mr-2 text-primary-pink w-5 h-5"></i> Ações Rápidas
                 </h2>
                 <div class="grid grid-cols-4 gap-4 mb-8 text-center">
-                    <!-- Cadastrar IA/Foto (CLICA E ABRE O MODAL) -->
                     <button id="ai-register-btn-quick" title="Cadastrar com Foto (IA)" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
                         <i data-lucide="camera" class="w-7 h-7 text-primary-pink mb-1"></i>
-                        <span class="text-xs font-medium">Cad. Foto</span>
+                        <span class="text-xs font-medium">Cad. IA</span>
                     </button>
-                    <!-- Scanner (CLICA, ROLA E INICIA) -->
                     <button id="start-scan-btn-quick" title="Iniciar Scanner" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
                         <i data-lucide="scan-line" class="w-7 h-7 text-primary-pink mb-1"></i>
                         <span class="text-xs font-medium">Scanner</span>
                     </button>
-                    <!-- Estoque Geral (CLICA E MOSTRA TUDO) -->
                     <button id="manual-entry-btn" title="Ver Estoque" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
                         <i data-lucide="package" class="w-7 h-7 text-primary-pink mb-1"></i>
                         <span class="text-xs font-medium">Ver Estoque</span>
                     </button>
-                    <!-- Alerta Estoque Baixo (CLICA E FILTRA) -->
-                    <button id="low-stock-alert-btn" title="Estoque Baixo" class="flex flex-col items-center p-2 rounded-lg hover:bg-red-500/30 transition text-dark-text">
+                    <button id="low-stock-alert-btn" title="Estoque Baixo" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
                         <i data-lucide="alert-triangle" class="w-7 h-7 text-red-500 mb-1"></i>
                         <span class="text-xs font-medium">Alertas</span>
                     </button>
                 </div>
 
-                <!-- Formulário de Cadastro -->
                 <h2 class="text-xl font-semibold mb-4 border-b border-gray-100 pb-2 text-dark-text flex items-center">
                     <i data-lucide="plus-circle" class="mr-2 w-5 h-5 text-primary-pink"></i> Novo Produto
                 </h2>
                 <div class="space-y-4">
-                    
-                    <!-- Campo de Nome e Botão de Foto -->
                     <div>
                         <label for="product-name" class="block text-sm font-medium text-dark-text mb-1">Nome do Produto (Ex: Tassel Vermelho)</label>
                         <div class="flex items-center gap-2">
                             <input type="text" id="product-name" placeholder="Nome + Cor/Variação" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
-                            <button id="ai-register-btn" title="Cadastrar com Foto (IA)" class="bg-primary-pink/10 hover:bg-primary-pink/20 p-2 rounded-lg transition text-primary-pink font-semibold flex items-center gap-1">
-                                <i data-lucide="camera" class="w-5 h-5"></i> Foto
+                            <button id="ai-register-btn" title="Cadastrar com Foto (IA)" class="bg-gray-200 hover:bg-gray-300 p-2 rounded-lg transition text-dark-text">
+                                <i data-lucide="camera" class="w-5 h-5"></i>
                             </button>
                         </div>
                     </div>
                     
-                    <!-- Preview da Foto Capturada -->
-                    <div id="image-preview-container" class="hidden">
-                         <p class="text-sm font-medium text-dark-text mb-1 flex items-center gap-1">
-                            <i data-lucide="image" class="w-4 h-4"></i> Foto Anexada:
-                            <button id="remove-image-btn" class="ml-auto text-xs text-red-500 hover:underline">Remover</button>
-                        </p>
-                        <img id="image-preview" src="" alt="Preview da Foto" class="product-image w-20 h-20 shadow-md">
-                    </div>
-
-                    <!-- Qtd. Inicial e Qtd. Mínima -->
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label for="product-qty" class="block text-sm font-medium text-dark-text mb-1">Qtd. Inicial</label>
+                            <label for="product-qty" class="block text-sm font-medium text-dark-text mb-1">Qtd. Inicial (Unidades)</label>
                             <input type="number" id="product-qty" value="1" min="0" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
                         </div>
                         <div>
@@ -164,11 +117,10 @@
                         </div>
                     </div>
 
-                    <!-- Categoria -->
                     <div>
                          <label for="product-category" class="block text-sm font-medium text-dark-text mb-1">Categoria</label>
                          <div class="flex gap-2">
-                             <select id="product-category" class="flex-grow rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm"></select>
+                             <select id="product-category" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm"></select>
                              <button id="manage-categories-btn" title="Gerenciar Categorias" class="bg-gray-200 hover:bg-gray-300 p-2 rounded-lg transition text-dark-text">
                                 <i data-lucide="settings-2" class="w-5 h-5"></i>
                             </button>
@@ -180,17 +132,15 @@
                     </button>
                 </div>
 
-                <!-- Lista de Estoque -->
-                <h2 id="stock-list-title" class="text-xl font-semibold mt-8 mb-4 border-b border-gray-100 pb-2 text-dark-text flex items-center">
+                <h2 class="text-xl font-semibold mt-8 mb-4 border-b border-gray-100 pb-2 text-dark-text flex items-center">
                     <i data-lucide="list" class="mr-2 w-5 h-5 text-primary-pink"></i> Estoque Atual
                 </h2>
-                <div id="product-list" class="space-y-3 max-h-[30rem] overflow-y-auto pr-2">
+                <div id="product-list" class="space-y-3 max-h-96 overflow-y-auto pr-2">
                     <p class="text-gray-500 text-sm">Nenhum produto cadastrado ainda.</p>
                 </div>
             </div>
 
-            <!-- COLUNA DE SCANNER (ID: scanner-container) -->
-            <div id="scanner-main-section" class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
+            <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
                 <h2 class="text-2xl font-semibold mb-4 text-center text-dark-text">
                     <i data-lucide="scan-line" class="inline-block mr-2 text-primary-pink"></i> Scanner de QR Code
                 </h2>
@@ -211,132 +161,52 @@
                         Estoque Atual: <span id="scanned-product-qty" class="font-bold text-primary-pink"></span>
                     </p>
                     
-                    <!-- Botões simplificados de Ação -->
                     <div class="grid grid-cols-2 gap-4">
-                        <button id="decrease-qty-btn-scan" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-md">
+                        <button id="decrease-qty-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-md">
                             <i data-lucide="minus" class="mr-1 w-5 h-5"></i> Saída (-1 Unidade)
                         </button>
-                        <button id="increase-qty-btn-scan" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-md">
+                        <button id="increase-qty-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-md">
                             <i data-lucide="plus" class="mr-1 w-5 h-5"></i> Entrada (+1 Unidade)
                         </button>
                     </div>
 
-                    <button id="close-scan-result-btn" class="mt-4 text-gray-500 hover:text-primary-pink transition">Fechar Resultado</button>
+                    <button id="close-scan-result-btn" class="mt-4 text-gray-500 hover:text-primary-pink transition">Fechar</button>
                 </div>
                 <div id="feedback-message" class="mt-4 text-center font-medium hidden"></div>
             </div>
         </main>
     </div>
 
-    <!-- Modal para Cadastro com IA/Foto -->
     <div id="ai-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl text-center text-dark-text">
-            <h3 class="text-2xl font-bold mb-4">Capturar Foto do Produto</h3>
-            <p id="ai-status" class="text-primary-pink mb-4">Aguardando permissão da câmera...</p>
-            
+            <h3 class="text-2xl font-bold mb-4">Cadastro por Imagem (IA)</h3>
+            <p id="ai-status" class="text-primary-pink mb-4">Carregando modelo de IA... Por favor, aguarde.</p>
             <div id="video-container" class="mb-4 rounded-lg overflow-hidden relative w-full aspect-video bg-gray-200 flex items-center justify-center">
                 <video id="ai-video" autoplay playsinline class="w-full h-full"></video>
                 <canvas id="ai-canvas" class="w-full h-full"></canvas>
             </div>
-            
-            <div id="capture-actions" class="flex gap-4 justify-center mb-4">
-                <button id="capture-photo-btn" class="bg-primary-pink hover:bg-pink-700 text-white font-bold py-3 px-6 rounded-lg transition shadow-md flex items-center gap-1" disabled>
-                    <i data-lucide="save" class="w-5 h-5"></i> CAPTURAR FOTO
-                </button>
-            </div>
-
-            <div id="ai-results" class="mb-4 p-3 bg-gray-50 rounded-lg">
-                <p class="text-sm text-gray-600">
-                    <i data-lucide="lightbulb" class="w-4 h-4 inline-block mr-1 text-yellow-500"></i> Sugestões da IA (Clique para usar o nome):
-                </p>
+            <div id="ai-results" class="mb-4">
+                <p class="text-gray-600">Aponte a câmera para um objeto. Clique no nome sugerido para selecioná-lo e finalize o cadastro:</p>
                 <div id="ai-buttons-container" class="flex flex-wrap justify-center gap-2 mt-2"></div>
             </div>
-            
-            <button id="ai-cancel-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition shadow-md w-full">Sair e Cancelar</button>
-        </div>
-    </div>
-    
-    <!-- Modal de Edição (Entrada/Saída) - REESTRUTURADO -->
-    <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm text-dark-text">
-            <h3 class="text-2xl font-bold mb-4 border-b pb-2 text-primary-pink">Ajustar Estoque</h3>
-            
-            <!-- Detalhes do Produto & Estoque Atual -->
-            <div class="flex items-center gap-4 mb-4 border p-3 rounded-lg bg-light-bg">
-                <img id="edit-product-img" src="" alt="Foto do Produto" class="product-image shadow-md w-12 h-12">
-                <div class="flex-grow">
-                    <p class="font-semibold text-lg" id="edit-product-name"></p>
-                    <p class="text-sm text-gray-500" id="edit-product-details"></p>
-                </div>
-                <div class="text-right shrink-0">
-                    <p class="text-xs text-gray-500">Qtd. Atual:</p>
-                    <p id="current-stock-qty" class="text-3xl font-bold text-primary-pink">0</p>
-                </div>
-            </div>
-            
-            <!-- CONTROLES DE ENTRADA E SAÍDA (O NOVO FLUXO) -->
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <!-- Seção de ENTRADA -->
-                <div class="bg-green-50 border-green-300 border p-3 rounded-lg">
-                    <label for="entry-qty-input" class="block text-sm font-bold text-green-700 mb-1 flex items-center">
-                        <i data-lucide="plus" class="w-4 h-4 mr-1"></i> ENTRADA (+ Qtd)
-                    </label>
-                    <input type="number" id="entry-qty-input" value="0" min="0" class="w-full text-center rounded-lg px-3 py-2 border border-green-500 text-xl font-bold focus:ring-2 focus:ring-green-500">
-                </div>
-                
-                <!-- Seção de SAÍDA -->
-                <div class="bg-red-50 border-red-300 border p-3 rounded-lg">
-                    <label for="exit-qty-input" class="block text-sm font-bold text-red-700 mb-1 flex items-center">
-                        <i data-lucide="minus" class="w-4 h-4 mr-1"></i> SAÍDA (- Qtd)
-                    </label>
-                    <input type="number" id="exit-qty-input" value="0" min="0" class="w-full text-center rounded-lg px-3 py-2 border border-red-500 text-xl font-bold focus:ring-2 focus:ring-red-500">
-                </div>
-            </div>
-
-            <!-- Previsão do Novo Estoque -->
-            <div class="mb-4 text-center p-3 bg-gray-100 rounded-lg">
-                 <p class="text-sm text-gray-700">Novo Estoque Previsto:</p>
-                 <p id="new-stock-preview" class="text-2xl font-bold text-dark-text">0</p>
-            </div>
-
-
-            <button id="save-edit-btn" class="w-full bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md flex items-center justify-center">
-                <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> REGISTRAR MOVIMENTAÇÃO
-            </button>
-            
-            <!-- Botão de Exclusão (NOVO) -->
-            <button id="delete-product-btn" class="mt-3 w-full bg-red-100 hover:bg-red-200 text-red-600 font-bold py-2 rounded-lg transition flex items-center justify-center">
-                <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Excluir Produto
-            </button>
-            
-            <button id="close-edit-modal-btn" class="mt-3 w-full bg-gray-200 hover:bg-gray-300 text-dark-text font-bold py-2 rounded-lg transition">Cancelar</button>
+            <button id="ai-cancel-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition shadow-md">Cancelar</button>
         </div>
     </div>
 
-    <!-- Modal de Confirmação (NOVO) -->
-    <div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-xs text-center text-dark-text">
-            <h3 class="text-xl font-bold mb-3 text-red-600">Confirmação</h3>
-            <p id="confirm-message" class="mb-4">Tem certeza que deseja excluir este produto?</p>
-            <div class="flex justify-center gap-3">
-                <button id="confirm-yes-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition">Sim, Excluir</button>
-                <button id="confirm-no-btn" class="bg-gray-300 hover:bg-gray-400 text-dark-text font-bold py-2 px-4 rounded-lg transition">Cancelar</button>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- Modal de Gerenciamento de Categorias (Reutilizado) -->
     <div id="category-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg text-dark-text">
             <h3 class="text-2xl font-bold mb-4 border-b pb-2">Gerenciar Categorias</h3>
-            <div id="categories-list" class="space-y-2 mb-4 max-h-60 overflow-y-auto"></div>
+            
+            <div id="categories-list" class="space-y-2 mb-4 max-h-60 overflow-y-auto">
+                </div>
+
             <div class="flex gap-2 mt-4 pt-4 border-t">
                 <input type="text" id="new-category-input" placeholder="Nova Categoria (Ex: Ilhós)" class="flex-grow rounded-lg px-3 py-2 border focus:ring-2 focus:ring-primary-pink">
                 <button id="add-category-btn" class="bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition">
                     <i data-lucide="plus" class="w-5 h-5"></i>
                 </button>
             </div>
+            
             <button id="close-category-modal-btn" class="mt-6 w-full bg-gray-200 hover:bg-gray-300 text-dark-text font-bold py-2 rounded-lg transition">Fechar</button>
         </div>
     </div>
@@ -361,14 +231,13 @@
             const productSearchInput = document.getElementById('product-search');
 
             // Elementos do Scanner
-            const scannerMainSection = document.getElementById('scanner-main-section');
             const startScanBtn = document.getElementById('start-scan-btn');
             const startScanBtnQuick = document.getElementById('start-scan-btn-quick');
             const scannerContainer = document.getElementById('scanner-container');
             const scanResultContainer = document.getElementById('scan-result-container');
             const feedbackMessage = document.getElementById('feedback-message');
             
-            // Elementos de IA/Foto
+            // Elementos de IA
             const aiRegisterBtn = document.getElementById('ai-register-btn');
             const aiRegisterBtnQuick = document.getElementById('ai-register-btn-quick');
             const aiModal = document.getElementById('ai-modal');
@@ -377,56 +246,43 @@
             const aiCanvas = document.getElementById('ai-canvas');
             const aiButtonsContainer = document.getElementById('ai-buttons-container');
             const aiCancelBtn = document.getElementById('ai-cancel-btn');
-            const capturePhotoBtn = document.getElementById('capture-photo-btn');
-            const imagePreview = document.getElementById('image-preview');
-            const imagePreviewContainer = document.getElementById('image-preview-container');
-            const removeImageBtn = document.getElementById('remove-image-btn');
 
-            // Elementos de Edição (Entrada/Saída/Deleção)
-            const editModal = document.getElementById('edit-modal');
-            const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
-            const editProductName = document.getElementById('edit-product-name');
-            const editProductDetails = document.getElementById('edit-product-details');
-            const editProductImg = document.getElementById('edit-product-img');
-            
-            // NOVOS ELEMENTOS DO MODAL DE EDIÇÃO
-            const currentStockQty = document.getElementById('current-stock-qty');
-            const entryQtyInput = document.getElementById('entry-qty-input');
-            const exitQtyInput = document.getElementById('exit-qty-input');
-            const newStockPreview = document.getElementById('new-stock-preview');
+            // Elementos de Categoria
+            const manageCategoriesBtn = document.getElementById('manage-categories-btn');
+            const categoryModal = document.getElementById('category-modal');
+            const closeCategoryModalBtn = document.getElementById('close-category-modal-btn');
+            const newCategoryInput = document.getElementById('new-category-input');
+            const addCategoryBtn = document.getElementById('add-category-btn');
+            const categoriesListDiv = document.getElementById('categories-list');
 
-            const saveEditBtn = document.getElementById('save-edit-btn');
-            const deleteProductBtn = document.getElementById('delete-product-btn'); 
-
-            // Elementos do Modal de Confirmação
-            const confirmModal = document.getElementById('confirm-modal');
-            const confirmMessage = document.getElementById('confirm-message');
-            const confirmYesBtn = document.getElementById('confirm-yes-btn');
-            const confirmNoBtn = document.getElementById('confirm-no-btn');
-            
-            // Ações Rápidas
-            const manualEntryBtn = document.getElementById('manual-entry-btn');
-            const lowStockAlertBtn = document.getElementById('low-stock-alert-btn');
-
-            
-            // Variáveis de Estado
             let html5QrCode;
             let products = [];
             let categories = [];
             let lastScannedProductId = null;
-            let currentEditingProductId = null;
-            let currentCapturedImageBase64 = null; 
-            
+
             let aiModel = null;
             let videoStream = null;
             let detectionInterval = null;
-            let pendingConfirmationAction = null; 
 
             // Mapeamento simples de classes COCO-SSD para Português (para melhor UX)
             const ptMap = {
-                'scissors': 'Tesoura', 'teddy bear': 'Urso de Pelúcia', 'book': 'Livro', 'box': 'Caixa',
-                'cell phone': 'Celular', 'laptop': 'Notebook', 'mouse': 'Mouse', 'cup': 'Copo',
-                'bottle': 'Garrafa', 'chair': 'Cadeira', 'backpack': 'Mochila', 'pen': 'Caneta', 'pencil': 'Lápis'
+                'person': 'Pessoa', 'bicycle': 'Bicicleta', 'car': 'Carro', 'motorcycle': 'Moto', 'airplane': 'Avião',
+                'bus': 'Ônibus', 'train': 'Trem', 'truck': 'Caminhão', 'boat': 'Barco', 'traffic light': 'Semáforo',
+                'fire hydrant': 'Hidrante', 'stop sign': 'Placa de Pare', 'parking meter': 'Parquímetro', 'bench': 'Banco',
+                'bird': 'Pássaro', 'cat': 'Gato', 'dog': 'Cachorro', 'horse': 'Cavalo', 'sheep': 'Ovelha', 'cow': 'Vaca',
+                'elephant': 'Elefante', 'bear': 'Urso', 'zebra': 'Zebra', 'giraffe': 'Girafa', 'backpack': 'Mochila',
+                'umbrella': 'Guarda-chuva', 'handbag': 'Bolsa', 'tie': 'Gravata', 'suitcase': 'Mala', 'frisbee': 'Frisbee',
+                'skis': 'Esquis', 'snowboard': 'Snowboard', 'sports ball': 'Bola Esportiva', 'kite': 'Pipa', 'baseball bat': 'Bastão',
+                'baseball glove': 'Luva de Baseball', 'skateboard': 'Skate', 'surfboard': 'Prancha de Surf', 'tennis racket': 'Raquete',
+                'bottle': 'Garrafa', 'wine glass': 'Taça de Vinho', 'cup': 'Copo', 'fork': 'Garfo', 'knife': 'Faca', 'spoon': 'Colher',
+                'bowl': 'Tigela', 'banana': 'Banana', 'apple': 'Maçã', 'sandwich': 'Sanduíche', 'orange': 'Laranja', 'broccoli': 'Brócolis',
+                'carrot': 'Cenoura', 'hot dog': 'Cachorro-quente', 'pizza': 'Pizza', 'donut': 'Donut', 'cake': 'Bolo', 'chair': 'Cadeira',
+                'couch': 'Sofá', 'potted plant': 'Planta em Vaso', 'bed': 'Cama', 'dining table': 'Mesa de Jantar', 'toilet': 'Vaso Sanitário',
+                'tv': 'TV', 'laptop': 'Notebook', 'mouse': 'Mouse', 'remote': 'Controle Remoto', 'keyboard': 'Teclado',
+                'cell phone': 'Celular', 'microwave': 'Micro-ondas', 'oven': 'Forno', 'toaster': 'Torradeira', 'sink': 'Pia',
+                'refrigerator': 'Geladeira', 'book': 'Livro', 'clock': 'Relógio', 'vase': 'Vaso', 'scissors': 'Tesoura',
+                'teddy bear': 'Urso de Pelúcia', 'hair drier': 'Secador de Cabelo', 'toothbrush': 'Escova de Dentes',
+                'pen': 'Caneta', 'pencil': 'Lápis', 'eraser': 'Borracha', 'paper': 'Papel', 'box': 'Caixa' 
             };
             function mapToPortuguese(className) {
                 return ptMap[className.toLowerCase()] || className.charAt(0).toUpperCase() + className.slice(1);
@@ -439,6 +295,7 @@
                 if (storedProducts) products = JSON.parse(storedProducts);
                 if (storedCategories) categories = JSON.parse(storedCategories);
 
+                // Garante que a categoria "Geral" exista se estiver vazio
                 if (categories.length === 0) {
                     categories.push('Geral');
                     saveCategories();
@@ -455,6 +312,7 @@
             function saveCategories() {
                 localStorage.setItem('stockControlCategories', JSON.stringify(categories));
                 renderCategorySelect();
+                renderCategoriesList();
             }
 
             function updateGlobalAlertIcon() {
@@ -471,7 +329,7 @@
                 lucide.createIcons();
             }
 
-            // --- Renderização de Categorias e Produtos ---
+            // --- Renderização de Categorias ---
             function renderCategorySelect() {
                 productCategorySelect.innerHTML = '';
                 categories.forEach(cat => {
@@ -482,27 +340,36 @@
                 });
             }
 
+            function renderCategoriesList() {
+                categoriesListDiv.innerHTML = '';
+                if (categories.length === 0) {
+                    categoriesListDiv.innerHTML = '<p class="text-gray-500 text-sm">Nenhuma categoria cadastrada.</p>';
+                    return;
+                }
+
+                categories.forEach(cat => {
+                    const catElement = document.createElement('div');
+                    catElement.className = 'flex justify-between items-center p-2 bg-gray-100 rounded-lg';
+                    catElement.innerHTML = `
+                        <span>${cat}</span>
+                        ${cat !== 'Geral' ? `<button data-category="${cat}" class="delete-category-btn text-gray-400 hover:text-red-500 transition"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : `<span class="text-xs text-gray-400">Padrão</span>`}
+                    `;
+                    categoriesListDiv.appendChild(catElement);
+                });
+                lucide.createIcons();
+            }
+
+            // --- Renderização de Produtos (Cartões e Alertas) ---
             function renderProductList(filter = '') {
                 productListDiv.innerHTML = '';
-                
-                const isAlertFilter = filter.toLowerCase() === 'baixo estoque';
-
-                // CORREÇÃO: A busca por produto funciona por Nome, ID e Categoria!
-                const filteredProducts = products.filter(p => {
-                    if (isAlertFilter) {
-                        return p.quantity <= p.minAlertQty;
-                    }
-                    const searchLower = filter.toLowerCase();
-                    return p.name.toLowerCase().includes(searchLower) || 
-                           p.id.includes(searchLower) ||
-                           p.category.toLowerCase().includes(searchLower);
-                });
+                const filteredProducts = products.filter(p => 
+                    p.name.toLowerCase().includes(filter.toLowerCase()) || 
+                    p.id.includes(filter.toLowerCase()) ||
+                    p.category.toLowerCase().includes(filter.toLowerCase())
+                );
                 
                 if (filteredProducts.length === 0) {
-                    const message = isAlertFilter 
-                        ? 'Nenhum item com estoque baixo no momento!' 
-                        : (filter ? 'Nenhum produto encontrado.' : 'Nenhum produto cadastrado ainda.');
-                    productListDiv.innerHTML = `<p class="text-gray-500 text-sm p-4 text-center">${message}</p>`;
+                    productListDiv.innerHTML = `<p class="text-gray-500 text-sm">${filter ? 'Nenhum produto encontrado.' : 'Nenhum produto cadastrado ainda.'}</p>`;
                     return;
                 }
 
@@ -514,34 +381,35 @@
                     const borderClass = isLowStock ? 'border-red-400 ring-1 ring-red-400' : 'border-gray-200';
                     
                     const productElement = document.createElement('div');
-                    productElement.className = `fade-in bg-gray-50 p-3 rounded-xl flex justify-between items-center shadow-md border ${borderClass}`;
+                    productElement.className = `fade-in bg-gray-50 p-4 rounded-lg flex justify-between items-center shadow-md border ${borderClass}`;
                     
-                    // Imagem (se existir) ou um ícone placeholder
-                    const imageHtml = product.imageBase64 
-                        ? `<img src="${product.imageBase64}" alt="Foto do produto" class="product-image shadow-sm">`
-                        : `<i data-lucide="${isLowStock ? 'box-alert' : 'package'}" class="w-10 h-10 ${isLowStock ? 'text-red-500' : 'text-primary-pink'} shrink-0 p-2 bg-white rounded-lg"></i>`;
-
-
                     productElement.innerHTML = `
-                        <div class="flex items-center gap-3 flex-grow min-w-0">
-                            ${imageHtml}
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="${isLowStock ? 'box-alert' : 'package'}" class="w-6 h-6 ${isLowStock ? 'text-red-500' : 'text-primary-pink'} shrink-0"></i>
                             <div>
-                                <p class="font-semibold text-dark-text truncate">${product.name}</p>
+                                <p class="font-semibold text-dark-text">${product.name}</p>
                                 <p class="text-xs text-gray-500">Cat: ${product.category}</p>
                             </div>
                         </div>
-                        <div class="text-right ml-4 shrink-0">
+                        <div class="text-right ml-4">
                             <span class="text-xs font-medium text-gray-700">Qtd Atual: </span>
                             <span class="text-xl ${stockClass}">${product.quantity}</span>
-                            <p class="text-xs text-gray-500">Mín: ${product.minAlertQty}</p>
+                            <p class="text-xs text-gray-500">Mínimo: ${product.minAlertQty}</p>
                         </div>
-                        <button data-id="${product.id}" class="edit-btn bg-primary-pink/10 hover:bg-primary-pink/20 text-primary-pink p-2 rounded-lg transition ml-4 shrink-0" title="Editar Quantidade">
-                            <i data-lucide="edit" class="w-5 h-5"></i>
+                        <button data-id="${product.id}" class="delete-btn text-gray-400 hover:text-red-500 transition ml-4 shrink-0">
+                            <i data-lucide="trash-2" class="w-5 h-5"></i>
                         </button>
                     `;
                     productListDiv.appendChild(productElement);
                 });
                 lucide.createIcons();
+            }
+
+            function showFeedback(message, isError = false) {
+                feedbackMessage.textContent = message;
+                feedbackMessage.className = `mt-4 text-center font-medium ${isError ? 'text-red-500' : 'text-green-500'} fade-in`;
+                feedbackMessage.classList.remove('hidden');
+                setTimeout(() => feedbackMessage.classList.add('hidden'), 4000);
             }
 
             // --- Lógica Principal de Estoque ---
@@ -552,7 +420,7 @@
                 const category = productCategorySelect.value;
 
                 if (!name || isNaN(quantity) || quantity < 0 || isNaN(minAlertQty) || minAlertQty < 1 || !category) {
-                    showFeedback('Por favor, preencha Nome, Qtd Inicial, Qtd Mínima e Categoria corretamente.', true);
+                    alert('Por favor, preencha o nome, quantidade inicial, quantidade mínima para alerta e selecione uma categoria.');
                     return;
                 }
                 
@@ -561,69 +429,40 @@
                     name: name, 
                     quantity: quantity,
                     minAlertQty: minAlertQty,
-                    category: category,
-                    imageBase64: currentCapturedImageBase64 || '' 
+                    category: category
                 };
                 
                 products.push(newProduct);
                 saveProducts();
                 renderProductList();
                 
-                // Limpa o formulário e a foto
+                // Limpa o formulário
                 productNameInput.value = '';
                 productQtyInput.value = '1';
                 minAlertQtyInput.value = '3';
-                currentCapturedImageBase64 = null;
-                imagePreviewContainer.classList.add('hidden');
-
-                showFeedback(`Produto "${name}" adicionado com sucesso!`);
+                
+                showFeedback(`Produto "${name}" adicionado com sucesso na categoria "${category}"!`);
             }
             
             function deleteProduct(productId) {
-                const initialLength = products.length;
-                products = products.filter(p => p.id !== productId);
-                
-                if (products.length < initialLength) {
+                if (confirm('Tem certeza que deseja excluir este produto?')) {
+                    products = products.filter(p => p.id !== productId);
                     saveProducts();
-                    renderProductList(productSearchInput.value);
-                    showFeedback('Produto excluído com sucesso!');
-                } else {
-                     showFeedback('Erro ao excluir produto.', true);
+                    renderProductList();
+                    showFeedback('Produto excluído.');
                 }
             }
             
-            function updateQuantity(productId, newQuantity) {
+            // Lógica simplificada de atualização (+1 ou -1 unidade)
+            function updateQuantity(productId, change) {
                 const product = products.find(p => p.id === productId);
                 if (product) {
-                    const oldQuantity = product.quantity;
-                    newQuantity = Math.max(0, parseInt(newQuantity, 10)); 
+                    product.quantity = Math.max(0, product.quantity + change);
                     
-                    product.quantity = newQuantity;
                     saveProducts();
                     renderProductList(productSearchInput.value); 
                     
-                    const change = newQuantity - oldQuantity;
-                    const action = change > 0 ? 'Entrada (Compra)' : (change < 0 ? 'Saída (Uso)' : 'Nenhuma Mudança');
-                    const message = change !== 0 ? `${action} de ${Math.abs(change)} unidades registrada para "${product.name}".` : 'Quantidade não alterada.';
-                    
-                    showFeedback(message);
-
-                    // Se estiver no modal de edição, atualiza a lista e fecha
-                    if (currentEditingProductId) {
-                         editModal.classList.add('hidden');
-                         currentEditingProductId = null;
-                    }
-                }
-            }
-
-            function updateQuantityFromScan(productId, change) {
-                const product = products.find(p => p.id === productId);
-                if (product) {
-                    const newQty = Math.max(0, product.quantity + change);
-                    product.quantity = newQty;
-                    saveProducts();
-                    
-                    // Atualiza o resultado do scanner
+                    // Atualiza a visualização do scanner
                     document.getElementById('scanned-product-qty').textContent = product.quantity;
 
                     const action = change > 0 ? 'Entrada' : 'Saída';
@@ -631,316 +470,22 @@
                 }
             }
             
-            // --- Lógica do Modal de Edição (Entrada/Saída) ---
-            function openEditModal(productId) {
-                const product = products.find(p => p.id === productId);
-                if (!product) return;
-
-                currentEditingProductId = productId;
-                
-                editProductName.textContent = product.name;
-                editProductDetails.textContent = `Cat: ${product.category} | Mín: ${product.minAlertQty}`;
-                
-                // Zera inputs e define o estoque atual
-                entryQtyInput.value = 0;
-                exitQtyInput.value = 0;
-                currentStockQty.textContent = product.quantity;
-                
-                // Atualiza a visualização da prévia
-                updatePreview();
-                
-                editProductImg.src = product.imageBase64 || 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
-                editProductImg.classList.toggle('bg-gray-100', !product.imageBase64);
-
-                editModal.classList.remove('hidden');
-            }
-            
-            // Função para calcular a prévia do estoque
-            function updatePreview() {
-                const product = products.find(p => p.id === currentEditingProductId);
-                if (!product) return;
-                
-                const currentQty = product.quantity;
-                const entry = parseInt(entryQtyInput.value, 10) || 0;
-                const exit = parseInt(exitQtyInput.value, 10) || 0;
-                
-                // Garante que a Saída não exceda o estoque disponível + entradas
-                const safeExit = Math.min(currentQty + entry, exit);
-                exitQtyInput.value = safeExit; // Atualiza o input de saída, caso o valor digitado fosse maior
-                
-                const newQty = Math.max(0, currentQty + entry - safeExit);
-                newStockPreview.textContent = newQty;
-            }
-
-            // Event Listeners para atualizar a prévia
-            entryQtyInput.addEventListener('input', updatePreview);
-            exitQtyInput.addEventListener('input', updatePreview);
-            
-
-            saveEditBtn.addEventListener('click', () => {
-                if (!currentEditingProductId) return;
-
-                const product = products.find(p => p.id === currentEditingProductId);
-                if (!product) return;
-                
-                const entry = parseInt(entryQtyInput.value, 10) || 0;
-                const exit = parseInt(exitQtyInput.value, 10) || 0;
-                const newTotal = parseInt(newStockPreview.textContent, 10);
-                
-                // Se não houver alteração, fecha sem salvar
-                if (entry === 0 && exit === 0) {
-                    editModal.classList.add('hidden');
-                    currentEditingProductId = null;
-                    showFeedback('Nenhuma alteração registrada.');
-                    return;
-                }
-
-                // A função updateQuantity já trata a diferença e a mensagem
-                updateQuantity(currentEditingProductId, newTotal);
-            });
-
-
-            // Abrir modal de confirmação para exclusão
-            deleteProductBtn.addEventListener('click', () => {
-                if (currentEditingProductId) {
-                    confirmMessage.textContent = `Tem certeza que deseja excluir permanentemente o produto "${editProductName.textContent}"? Esta ação não pode ser desfeita.`;
-                    pendingConfirmationAction = () => {
-                        deleteProduct(currentEditingProductId);
-                        editModal.classList.add('hidden');
-                        currentEditingProductId = null;
-                    };
-                    confirmModal.classList.remove('hidden');
-                }
-            });
-
-
-            closeEditModalBtn.addEventListener('click', () => {
-                editModal.classList.add('hidden');
-                currentEditingProductId = null;
-            });
-
-            // Lógica do Modal de Confirmação
-            confirmYesBtn.addEventListener('click', () => {
-                if (pendingConfirmationAction) {
-                    pendingConfirmationAction();
-                }
-                confirmModal.classList.add('hidden');
-                pendingConfirmationAction = null;
-            });
-
-            confirmNoBtn.addEventListener('click', () => {
-                confirmModal.classList.add('hidden');
-                pendingConfirmationAction = null;
-            });
-
-            function showFeedback(message, isError = false) {
-                feedbackMessage.textContent = message;
-                feedbackMessage.className = `mt-4 text-center font-medium ${isError ? 'text-red-500' : 'text-green-500'} fade-in`;
-                feedbackMessage.classList.remove('hidden');
-                setTimeout(() => feedbackMessage.classList.add('hidden'), 4000);
-            }
-
-
-            // --- LÓGICA DA IA/FOTO (mantida) ---
-
-            async function loadAIModel() {
-                aiStatus.textContent = 'Carregando modelo de IA...';
-                try {
-                    aiModel = await cocoSsd.load();
-                    aiStatus.textContent = 'Modelo de IA carregado. Pronto para detectar.';
-                    capturePhotoBtn.disabled = false;
-                } catch (error) {
-                    aiStatus.textContent = 'Erro ao carregar modelo de IA.';
-                    console.error("AI Model Load Error:", error);
-                }
-            }
-
-            async function startAIDetection() {
-                aiModal.classList.remove('hidden');
-                if (!aiModel) await loadAIModel();
-
-                aiStatus.textContent = 'Aguardando câmera...';
-                try {
-                    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                    aiVideo.srcObject = videoStream;
-                    
-                    aiVideo.onloadedmetadata = () => {
-                        aiVideo.play();
-                        aiStatus.textContent = 'Câmera ativa. Detectando objetos...';
-                        detectionInterval = setInterval(predictFrame, 1000); // Tenta detectar a cada 1 segundo
-                    };
-                } catch (err) {
-                    aiStatus.textContent = 'Erro ao acessar a câmera. Verifique as permissões.';
-                    console.error("Camera Access Error:", err);
-                }
-            }
-            
-            function stopAIDetection() {
-                aiModal.classList.add('hidden');
-                if (detectionInterval) clearInterval(detectionInterval);
-                if (videoStream) {
-                    videoStream.getTracks().forEach(track => track.stop());
-                }
-                aiVideo.srcObject = null;
-            }
-
-            async function predictFrame() {
-                if (!aiModel || aiVideo.paused || aiVideo.ended) return;
-
-                const predictions = await aiModel.detect(aiVideo);
-                aiButtonsContainer.innerHTML = '';
-                
-                if (predictions.length > 0) {
-                    aiStatus.textContent = `Itens detectados: ${predictions.length}`;
-                    const uniqueLabels = new Set();
-
-                    predictions.forEach(p => {
-                        const label = mapToPortuguese(p.class);
-                        if (!uniqueLabels.has(label)) {
-                            uniqueLabels.add(label);
-                            
-                            const button = document.createElement('button');
-                            button.textContent = label;
-                            button.className = 'bg-soft-pink text-primary-pink font-semibold text-sm px-3 py-1 rounded-full hover:bg-primary-pink/30 transition';
-                            button.onclick = () => {
-                                productNameInput.value = label;
-                                stopAIDetection();
-                                showFeedback(`Nome do produto sugerido pela IA: "${label}"`);
-                            };
-                            aiButtonsContainer.appendChild(button);
-                        }
-                    });
-                } else {
-                    aiStatus.textContent = 'Nenhum objeto detectado. Tente mover o produto.';
-                }
-            }
-
-
-            capturePhotoBtn.addEventListener('click', () => {
-                if (!aiVideo.srcObject) return;
-                const ctx = aiCanvas.getContext('2d');
-                aiCanvas.width = aiVideo.videoWidth;
-                aiCanvas.height = aiVideo.videoHeight;
-                ctx.drawImage(aiVideo, 0, 0, aiCanvas.width, aiCanvas.height);
-                currentCapturedImageBase64 = aiCanvas.toDataURL('image/jpeg', 0.8);
-                imagePreview.src = currentCapturedImageBase64;
-                imagePreviewContainer.classList.remove('hidden');
-                stopAIDetection();
-                showFeedback('Foto capturada e anexada ao produto!');
-            });
-            
-            removeImageBtn.addEventListener('click', () => {
-                currentCapturedImageBase64 = null;
-                imagePreview.src = '';
-                imagePreviewContainer.classList.add('hidden');
-                showFeedback('Foto removida.');
-            });
-
-
-            // --- Event Listeners ---
-            addProductBtn.addEventListener('click', addProduct);
-            
-            // Scanner 
-            const toggleScanner = () => {
-                if (html5QrCode && html5QrCode.isScanning) stopScanner();
-                else {
-                    scanResultContainer.classList.add('hidden');
-                    scannerContainer.classList.remove('hidden');
-                    startScanner();
-                }
-            };
-
-            // Listener para o botão Iniciar Scanner (na seção do scanner)
-            startScanBtn.addEventListener('click', toggleScanner);
-            
-            // Listener para o botão Rápido do Scanner (Rola e Inicia)
-            startScanBtnQuick.addEventListener('click', () => {
-                // 1. Rola para a seção do scanner
-                scannerMainSection.scrollIntoView({ behavior: 'smooth' });
-                // 2. Inicia o scanner
-                scanResultContainer.classList.add('hidden');
-                scannerContainer.classList.remove('hidden');
-                startScanner();
-            });
-
-            // Controle de Estoque no Scanner (mantido)
-            document.getElementById('increase-qty-btn-scan').addEventListener('click', () => { 
-                if (lastScannedProductId) updateQuantityFromScan(lastScannedProductId, 1); 
-            });
-            document.getElementById('decrease-qty-btn-scan').addEventListener('click', () => { 
-                if (lastScannedProductId) updateQuantityFromScan(lastScannedProductId, -1); 
-            });
-
-            // Fechar Resultado do Scan (mantido)
-            document.getElementById('close-scan-result-btn').addEventListener('click', () => {
-                scanResultContainer.classList.add('hidden');
-                scannerContainer.classList.remove('hidden');
-                lastScannedProductId = null;
-                stopScanner();
-                showFeedback('Scanner finalizado.');
-            });
-            
-            // Edição de Produto na Lista
-            productListDiv.addEventListener('click', (e) => {
-                const editButton = e.target.closest('.edit-btn');
-                if (editButton) openEditModal(editButton.dataset.id);
-            });
-
-            // Filtro de Busca (AGORA ROLA PARA A LISTA)
-            productSearchInput.addEventListener('input', (e) => {
-                const searchValue = e.target.value.trim();
-                renderProductList(searchValue);
-
-                // NOVO: Rola suavemente para a lista se houver algo para buscar
-                if (searchValue !== '') {
-                    productListDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-            
-            // Botão "Ver Estoque" (Ação Rápida - LIMPA BUSCA E MOSTRA TUDO + ROLA)
-            manualEntryBtn.addEventListener('click', () => {
-                 productSearchInput.value = ''; // Limpa a busca
-                 renderProductList(''); // Renderiza tudo
-                 showFeedback('Exibindo todos os produtos (Estoque Geral).');
-                 // Rola suavemente para a lista
-                 document.getElementById('stock-list-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
-
-            // Botão de Alerta (Ação Rápida - FILTRA APENAS ESTOQUE BAIXO + ROLA)
-            lowStockAlertBtn.addEventListener('click', () => {
-                 const lowStockProducts = products.filter(p => p.quantity <= p.minAlertQty);
-                 if (lowStockProducts.length > 0) {
-                     productSearchInput.value = 'Baixo Estoque'; // Mantém o termo na busca
-                     renderProductList('Baixo Estoque'); // Filtra pela string especial
-                     showFeedback(`Exibindo ${lowStockProducts.length} itens com estoque baixo.`, true);
-                 } else {
-                     productSearchInput.value = '';
-                     renderProductList('');
-                     showFeedback('Nenhum item com estoque baixo no momento.', false);
-                 }
-                 // Rola suavemente para a lista
-                 document.getElementById('stock-list-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
-
-            // Botões de IA/Foto (Agora o rápido também inicia a câmera)
-            aiRegisterBtn.addEventListener('click', startAIDetection);
-            aiRegisterBtnQuick.addEventListener('click', startAIDetection);
-            aiCancelBtn.addEventListener('click', stopAIDetection);
-            
-            // Início do Scanner (mantido)
-            function onScanSuccess(decodedText) { 
+            // --- Lógica do Scanner de QR Code ---
+            function onScanSuccess(decodedText) {
                 const product = products.find(p => p.id === decodedText);
                 if (product) {
                     lastScannedProductId = product.id;
                     document.getElementById('scanned-product-name').textContent = product.name;
                     document.getElementById('scanned-product-details').textContent = `Categoria: ${product.category} | Mínimo: ${product.minAlertQty}`;
+                    
+                    // Atualiza a exibição de estoque
                     document.getElementById('scanned-product-qty').textContent = product.quantity;
                     
                     scannerContainer.classList.add('hidden');
                     scanResultContainer.classList.remove('hidden');
                     stopScanner();
                 } else {
-                    showFeedback(`Produto ID "${decodedText}" não encontrado.`, true);
+                    showFeedback(`Produto com QR Code ID "${decodedText}" não encontrado.`, true);
                 }
             }
             function onScanFailure(error) { /* Silencioso */ }
@@ -950,8 +495,8 @@
                 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
                 
                 if (html5QrCode.isScanning) {
-                    // Se já estiver scaneando, apenas garante que os botões estão certos
-                    return; 
+                    stopScanner();
+                    return;
                 }
 
                 html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
@@ -960,7 +505,7 @@
                         startScanBtn.classList.replace('bg-primary-pink', 'bg-red-500');
                         startScanBtn.classList.replace('hover:bg-pink-700', 'hover:bg-red-600');
                         lucide.createIcons();
-                    }).catch(err => showFeedback("Erro ao acessar a câmera. Verifique as permissões.", true));
+                    }).catch(err => alert("Erro ao acessar a câmera. Verifique as permissões (e certifique-se de estar em HTTPS/localhost)."));
             }
             
             function stopScanner() {
@@ -974,13 +519,196 @@
                 }
             }
             
-            // Lógica de Categorias (mantida, mas precisa de event listeners para o modal)
-            // ... (Faltam os event listeners para o modal de categorias para ser completo, mas a função base está presente)
+            // --- LÓGICA DA IA (COCO-SSD) ---
+            async function loadAIModel() {
+                if (!aiModel) {
+                    try {
+                        aiModel = await cocoSsd.load();
+                        aiStatus.textContent = "Modelo carregado! Aponte para o material.";
+                        aiStatus.classList.replace('text-primary-pink', 'text-green-500');
+                    } catch (err) {
+                        console.error("Erro ao carregar modelo de IA:", err);
+                        aiStatus.textContent = "Erro ao carregar modelo.";
+                        aiStatus.classList.replace('text-primary-pink', 'text-red-500');
+                    }
+                }
+            }
+            
+            async function startAIDetection() {
+                aiModal.classList.remove('hidden');
+                await loadAIModel();
+
+                try {
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    aiVideo.srcObject = videoStream;
+                    aiVideo.onloadedmetadata = () => {
+                        aiVideo.play();
+                        // Ajusta a detecção para ser um pouco mais lenta
+                        detectionInterval = setInterval(predictFrame, 500); 
+                    };
+                } catch (err) {
+                    console.error("Erro ao acessar a câmera para IA:", err);
+                    aiStatus.textContent = "Não foi possível acessar a câmera. Verifique as permissões.";
+                    aiStatus.classList.replace('text-primary-pink', 'text-red-500');
+                }
+            }
+
+            function stopAIDetection() {
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                }
+                if (detectionInterval) {
+                    clearInterval(detectionInterval);
+                    detectionInterval = null;
+                }
+                aiModal.classList.add('hidden');
+                aiButtonsContainer.innerHTML = '';
+            }
+
+            async function predictFrame() {
+                if (!aiModel || aiVideo.paused || aiVideo.ended) return;
+
+                const predictions = await aiModel.detect(aiVideo);
+                
+                // Redimensiona o canvas para o vídeo (apenas uma vez)
+                if (aiCanvas.width === 0) {
+                    aiCanvas.width = aiVideo.videoWidth;
+                    aiCanvas.height = aiVideo.videoHeight;
+                }
+
+                const ctx = aiCanvas.getContext('2d');
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                
+                aiButtonsContainer.innerHTML = '';
+                const detectedClasses = new Set(); 
+
+                predictions.forEach(prediction => {
+                    const portugueseName = mapToPortuguese(prediction.class);
+
+                    // Desenha a caixa (mantido para visualização)
+                    ctx.beginPath();
+                    ctx.rect(...prediction.bbox);
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = '#e91e63'; 
+                    ctx.stroke();
+
+                    // Adiciona o botão de sugestão
+                    if (!detectedClasses.has(portugueseName)) {
+                        detectedClasses.add(portugueseName);
+                        const btn = document.createElement('button');
+                        btn.textContent = `Sugestão: ${portugueseName}`;
+                        btn.className = "bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md text-sm";
+                        btn.onclick = () => {
+                            productNameInput.value = portugueseName;
+                            stopAIDetection();
+                        };
+                        aiButtonsContainer.appendChild(btn);
+                    }
+                });
+            }
 
 
-            loadData(); // Carrega dados ao iniciar
+            // --- Event Listeners ---
+            addProductBtn.addEventListener('click', addProduct);
+            
+            // Scanner
+            const toggleScanner = () => {
+                if (html5QrCode && html5QrCode.isScanning) stopScanner();
+                else {
+                    scanResultContainer.classList.add('hidden');
+                    scannerContainer.classList.remove('hidden');
+                    startScanner();
+                }
+            };
+            startScanBtn.addEventListener('click', toggleScanner);
+            startScanBtnQuick.addEventListener('click', toggleScanner);
+
+            // Controle de Estoque na Leitura de QR
+            document.getElementById('increase-qty-btn').addEventListener('click', () => { 
+                if (lastScannedProductId) updateQuantity(lastScannedProductId, 1); 
+            });
+            document.getElementById('decrease-qty-btn').addEventListener('click', () => { 
+                if (lastScannedProductId) updateQuantity(lastScannedProductId, -1); 
+            });
+
+            // Fechar Resultado do Scan
+            document.getElementById('close-scan-result-btn').addEventListener('click', () => {
+                scanResultContainer.classList.add('hidden');
+                scannerContainer.classList.remove('hidden');
+                lastScannedProductId = null;
+                stopScanner();
+            });
+            
+            // Deleção de Produto
+            productListDiv.addEventListener('click', (e) => {
+                const deleteButton = e.target.closest('.delete-btn');
+                if (deleteButton) deleteProduct(deleteButton.dataset.id);
+            });
+
+            // Filtro de Busca
+            productSearchInput.addEventListener('input', (e) => {
+                renderProductList(e.target.value);
+            });
+            
+            // Botão de Alerta
+            document.getElementById('low-stock-alert-btn').addEventListener('click', () => {
+                 const lowStockProducts = products.filter(p => p.quantity <= p.minAlertQty);
+                 if (lowStockProducts.length > 0) {
+                     renderProductList('Baixo Estoque'); 
+                     showFeedback(`Exibindo ${lowStockProducts.length} itens com estoque baixo.`);
+                 } else {
+                     showFeedback('Nenhum item com estoque baixo.', false);
+                     renderProductList('');
+                 }
+            });
+
+            // Botões de IA
+            aiRegisterBtn.addEventListener('click', startAIDetection);
+            aiRegisterBtnQuick.addEventListener('click', startAIDetection);
+            aiCancelBtn.addEventListener('click', stopAIDetection);
+            
+            // --- Lógica de Gerenciamento de Categorias ---
+            manageCategoriesBtn.addEventListener('click', () => {
+                renderCategoriesList();
+                categoryModal.classList.remove('hidden');
+            });
+            closeCategoryModalBtn.addEventListener('click', () => {
+                categoryModal.classList.add('hidden');
+            });
+
+            addCategoryBtn.addEventListener('click', () => {
+                const newCat = newCategoryInput.value.trim();
+                if (newCat && !categories.includes(newCat)) {
+                    categories.push(newCat);
+                    saveCategories();
+                    newCategoryInput.value = '';
+                } else if (newCat) {
+                     alert('Categoria já existe!');
+                }
+            });
+
+            categoriesListDiv.addEventListener('click', (e) => {
+                const deleteButton = e.target.closest('.delete-category-btn');
+                if (deleteButton) {
+                    const catToDelete = deleteButton.dataset.category;
+                    if (confirm(`Tem certeza que deseja excluir a categoria "${catToDelete}"? Produtos nela serão movidos para "Geral".`)) {
+                        // Move produtos para a categoria "Geral"
+                        products.forEach(p => {
+                            if (p.category === catToDelete) p.category = 'Geral';
+                        });
+                        saveProducts();
+
+                        // Remove a categoria
+                        categories = categories.filter(cat => cat !== catToDelete);
+                        saveCategories();
+                        renderCategoriesList();
+                    }
+                }
+            });
+
+
+            loadData();
         });
     </script>
 </body>
 </html>
-
