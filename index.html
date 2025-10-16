@@ -181,7 +181,7 @@
                 </div>
 
                 <!-- Lista de Estoque -->
-                <h2 class="text-xl font-semibold mt-8 mb-4 border-b border-gray-100 pb-2 text-dark-text flex items-center">
+                <h2 id="stock-list-title" class="text-xl font-semibold mt-8 mb-4 border-b border-gray-100 pb-2 text-dark-text flex items-center">
                     <i data-lucide="list" class="mr-2 w-5 h-5 text-primary-pink"></i> Estoque Atual
                 </h2>
                 <div id="product-list" class="space-y-3 max-h-[30rem] overflow-y-auto pr-2">
@@ -256,37 +256,53 @@
         </div>
     </div>
     
-    <!-- Modal de Edição (Entrada/Saída) -->
+    <!-- Modal de Edição (Entrada/Saída) - REESTRUTURADO -->
     <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm text-dark-text">
-            <h3 class="text-2xl font-bold mb-4 border-b pb-2 text-primary-pink">Editar Estoque</h3>
+            <h3 class="text-2xl font-bold mb-4 border-b pb-2 text-primary-pink">Ajustar Estoque</h3>
             
-            <!-- Detalhes do Produto -->
-            <div class="flex items-center gap-4 mb-4">
-                <img id="edit-product-img" src="" alt="Foto do Produto" class="product-image shadow-md">
-                <div>
+            <!-- Detalhes do Produto & Estoque Atual -->
+            <div class="flex items-center gap-4 mb-4 border p-3 rounded-lg bg-light-bg">
+                <img id="edit-product-img" src="" alt="Foto do Produto" class="product-image shadow-md w-12 h-12">
+                <div class="flex-grow">
                     <p class="font-semibold text-lg" id="edit-product-name"></p>
                     <p class="text-sm text-gray-500" id="edit-product-details"></p>
                 </div>
-            </div>
-
-            <!-- Campo de Quantidade com Botoes +/- GRANDES (CORRIGIDO PARA MOBILE) -->
-            <div class="mb-6 border p-3 rounded-lg bg-light-bg">
-                <label for="edit-quantity-input" class="block text-sm font-medium text-dark-text mb-2 text-center">Ajustar Quantidade Total:</label>
-                <div class="flex items-center gap-3">
-                    <!-- Botão Saída (-) -->
-                    <button id="decrease-btn-edit" title="Saída (Subtrair 1)" class="bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition font-bold text-2xl w-14 h-14 flex justify-center items-center shadow-md shrink-0">-</button>
-                    
-                    <!-- Campo de Input -->
-                    <input type="number" id="edit-quantity-input" min="0" class="flex-grow text-center rounded-lg px-3 py-2 border focus:ring-2 focus:ring-primary-pink text-3xl font-bold h-14">
-                    
-                    <!-- Botão Entrada (+) -->
-                    <button id="increase-btn-edit" title="Entrada (Adicionar 1)" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition font-bold text-2xl w-14 h-14 flex justify-center items-center shadow-md shrink-0">+</button>
+                <div class="text-right shrink-0">
+                    <p class="text-xs text-gray-500">Qtd. Atual:</p>
+                    <p id="current-stock-qty" class="text-3xl font-bold text-primary-pink">0</p>
                 </div>
-                <p class="text-xs text-gray-500 mt-2 text-center">Use o campo acima para definir a nova quantidade total (Entrada ou Saída).</p>
+            </div>
+            
+            <!-- CONTROLES DE ENTRADA E SAÍDA (O NOVO FLUXO) -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <!-- Seção de ENTRADA -->
+                <div class="bg-green-50 border-green-300 border p-3 rounded-lg">
+                    <label for="entry-qty-input" class="block text-sm font-bold text-green-700 mb-1 flex items-center">
+                        <i data-lucide="plus" class="w-4 h-4 mr-1"></i> ENTRADA (+ Qtd)
+                    </label>
+                    <input type="number" id="entry-qty-input" value="0" min="0" class="w-full text-center rounded-lg px-3 py-2 border border-green-500 text-xl font-bold focus:ring-2 focus:ring-green-500">
+                </div>
+                
+                <!-- Seção de SAÍDA -->
+                <div class="bg-red-50 border-red-300 border p-3 rounded-lg">
+                    <label for="exit-qty-input" class="block text-sm font-bold text-red-700 mb-1 flex items-center">
+                        <i data-lucide="minus" class="w-4 h-4 mr-1"></i> SAÍDA (- Qtd)
+                    </label>
+                    <input type="number" id="exit-qty-input" value="0" min="0" class="w-full text-center rounded-lg px-3 py-2 border border-red-500 text-xl font-bold focus:ring-2 focus:ring-red-500">
+                </div>
             </div>
 
-            <button id="save-edit-btn" class="w-full bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md">SALVAR ALTERAÇÕES</button>
+            <!-- Previsão do Novo Estoque -->
+            <div class="mb-4 text-center p-3 bg-gray-100 rounded-lg">
+                 <p class="text-sm text-gray-700">Novo Estoque Previsto:</p>
+                 <p id="new-stock-preview" class="text-2xl font-bold text-dark-text">0</p>
+            </div>
+
+
+            <button id="save-edit-btn" class="w-full bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md flex items-center justify-center">
+                <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> REGISTRAR MOVIMENTAÇÃO
+            </button>
             
             <!-- Botão de Exclusão (NOVO) -->
             <button id="delete-product-btn" class="mt-3 w-full bg-red-100 hover:bg-red-200 text-red-600 font-bold py-2 rounded-lg transition flex items-center justify-center">
@@ -372,11 +388,15 @@
             const editProductName = document.getElementById('edit-product-name');
             const editProductDetails = document.getElementById('edit-product-details');
             const editProductImg = document.getElementById('edit-product-img');
-            const editQuantityInput = document.getElementById('edit-quantity-input');
-            const decreaseBtnEdit = document.getElementById('decrease-btn-edit');
-            const increaseBtnEdit = document.getElementById('increase-btn-edit');
+            
+            // NOVOS ELEMENTOS DO MODAL DE EDIÇÃO
+            const currentStockQty = document.getElementById('current-stock-qty');
+            const entryQtyInput = document.getElementById('entry-qty-input');
+            const exitQtyInput = document.getElementById('exit-qty-input');
+            const newStockPreview = document.getElementById('new-stock-preview');
+
             const saveEditBtn = document.getElementById('save-edit-btn');
-            const deleteProductBtn = document.getElementById('delete-product-btn'); // NOVO
+            const deleteProductBtn = document.getElementById('delete-product-btn'); 
 
             // Elementos do Modal de Confirmação
             const confirmModal = document.getElementById('confirm-modal');
@@ -400,7 +420,7 @@
             let aiModel = null;
             let videoStream = null;
             let detectionInterval = null;
-            let pendingConfirmationAction = null; // Armazena a ação a ser confirmada
+            let pendingConfirmationAction = null; 
 
             // Mapeamento simples de classes COCO-SSD para Português (para melhor UX)
             const ptMap = {
@@ -435,7 +455,6 @@
             function saveCategories() {
                 localStorage.setItem('stockControlCategories', JSON.stringify(categories));
                 renderCategorySelect();
-                // renderCategoriesList(); // Omitido pois o modal de categorias está com código simplificado
             }
 
             function updateGlobalAlertIcon() {
@@ -621,29 +640,67 @@
                 
                 editProductName.textContent = product.name;
                 editProductDetails.textContent = `Cat: ${product.category} | Mín: ${product.minAlertQty}`;
-                editQuantityInput.value = product.quantity;
+                
+                // Zera inputs e define o estoque atual
+                entryQtyInput.value = 0;
+                exitQtyInput.value = 0;
+                currentStockQty.textContent = product.quantity;
+                
+                // Atualiza a visualização da prévia
+                updatePreview();
                 
                 editProductImg.src = product.imageBase64 || 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
                 editProductImg.classList.toggle('bg-gray-100', !product.imageBase64);
 
                 editModal.classList.remove('hidden');
             }
+            
+            // Função para calcular a prévia do estoque
+            function updatePreview() {
+                const product = products.find(p => p.id === currentEditingProductId);
+                if (!product) return;
+                
+                const currentQty = product.quantity;
+                const entry = parseInt(entryQtyInput.value, 10) || 0;
+                const exit = parseInt(exitQtyInput.value, 10) || 0;
+                
+                // Garante que a Saída não exceda o estoque disponível + entradas
+                const safeExit = Math.min(currentQty + entry, exit);
+                exitQtyInput.value = safeExit; // Atualiza o input de saída, caso o valor digitado fosse maior
+                
+                const newQty = Math.max(0, currentQty + entry - safeExit);
+                newStockPreview.textContent = newQty;
+            }
 
-            decreaseBtnEdit.addEventListener('click', () => {
-                editQuantityInput.value = Math.max(0, parseInt(editQuantityInput.value, 10) - 1);
-            });
-            increaseBtnEdit.addEventListener('click', () => {
-                editQuantityInput.value = parseInt(editQuantityInput.value, 10) + 1;
-            });
+            // Event Listeners para atualizar a prévia
+            entryQtyInput.addEventListener('input', updatePreview);
+            exitQtyInput.addEventListener('input', updatePreview);
+            
 
             saveEditBtn.addEventListener('click', () => {
-                if (currentEditingProductId) {
-                    const newQty = parseInt(editQuantityInput.value, 10);
-                    updateQuantity(currentEditingProductId, newQty);
+                if (!currentEditingProductId) return;
+
+                const product = products.find(p => p.id === currentEditingProductId);
+                if (!product) return;
+                
+                const entry = parseInt(entryQtyInput.value, 10) || 0;
+                const exit = parseInt(exitQtyInput.value, 10) || 0;
+                const newTotal = parseInt(newStockPreview.textContent, 10);
+                
+                // Se não houver alteração, fecha sem salvar
+                if (entry === 0 && exit === 0) {
+                    editModal.classList.add('hidden');
+                    currentEditingProductId = null;
+                    showFeedback('Nenhuma alteração registrada.');
+                    return;
                 }
+
+                // A função updateQuantity já trata a diferença e a mensagem
+                updateQuantity(currentEditingProductId, newTotal);
             });
 
-            // NOVO: Abrir modal de confirmação para exclusão
+
+            // Abrir modal de confirmação para exclusão
             deleteProductBtn.addEventListener('click', () => {
                 if (currentEditingProductId) {
                     confirmMessage.textContent = `Tem certeza que deseja excluir permanentemente o produto "${editProductName.textContent}"? Esta ação não pode ser desfeita.`;
@@ -685,8 +742,6 @@
 
 
             // --- LÓGICA DA IA/FOTO (mantida) ---
-            // As funções loadAIModel, startAIDetection, stopAIDetection e predictFrame são mantidas.
-            // Apenas a chamada é alterada para o botão rápido.
 
             async function loadAIModel() {
                 aiStatus.textContent = 'Carregando modelo de IA...';
@@ -831,19 +886,27 @@
                 if (editButton) openEditModal(editButton.dataset.id);
             });
 
-            // Filtro de Busca (mantido - já funciona por Nome, ID e Categoria)
+            // Filtro de Busca (AGORA ROLA PARA A LISTA)
             productSearchInput.addEventListener('input', (e) => {
-                renderProductList(e.target.value);
+                const searchValue = e.target.value.trim();
+                renderProductList(searchValue);
+
+                // NOVO: Rola suavemente para a lista se houver algo para buscar
+                if (searchValue !== '') {
+                    productListDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             });
             
-            // Botão "Ver Estoque" (Ação Rápida - LIMPA BUSCA E MOSTRA TUDO)
+            // Botão "Ver Estoque" (Ação Rápida - LIMPA BUSCA E MOSTRA TUDO + ROLA)
             manualEntryBtn.addEventListener('click', () => {
                  productSearchInput.value = ''; // Limpa a busca
                  renderProductList(''); // Renderiza tudo
                  showFeedback('Exibindo todos os produtos (Estoque Geral).');
+                 // Rola suavemente para a lista
+                 document.getElementById('stock-list-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
 
-            // Botão de Alerta (Ação Rápida - FILTRA APENAS ESTOQUE BAIXO)
+            // Botão de Alerta (Ação Rápida - FILTRA APENAS ESTOQUE BAIXO + ROLA)
             lowStockAlertBtn.addEventListener('click', () => {
                  const lowStockProducts = products.filter(p => p.quantity <= p.minAlertQty);
                  if (lowStockProducts.length > 0) {
@@ -855,6 +918,8 @@
                      renderProductList('');
                      showFeedback('Nenhum item com estoque baixo no momento.', false);
                  }
+                 // Rola suavemente para a lista
+                 document.getElementById('stock-list-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
 
             // Botões de IA/Foto (Agora o rápido também inicia a câmera)
