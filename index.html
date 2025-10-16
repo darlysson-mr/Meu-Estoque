@@ -10,7 +10,7 @@
             theme: {
                 extend: {
                     colors: {
-                        'primary-pink': '#e91e63', // Um rosa vibrante para destaque
+                        'primary-pink': '#e91e63', // Rosa vibrante (Destaque Méliuz)
                         'soft-pink': '#f8bbd0',
                         'light-bg': '#f5f5f5', // Fundo bem claro
                         'dark-text': '#262626',
@@ -23,19 +23,22 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest/dist/coco-ssd.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="apple-touch-icon" href="favicon.png"> 
+    <link rel="manifest" href="manifest.json">
+
     <style>
         html, body { height: 100%; font-family: 'Inter', sans-serif; }
-        /* Fundo claro para o corpo */
         body { background-color: #f5f5f5; color: #262626; }
         /* Estilos do Scanner QR */
         #qr-reader { width: 100%; max-width: 400px; border-radius: 8px; overflow: hidden; border: 2px solid #e91e63; }
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        /* Estilos para o modal da IA */
-        #ai-modal { background-color: rgba(0, 0, 0, 0.8); }
+        /* Estilos para o modal e inputs */
+        #ai-modal, #category-modal { background-color: rgba(0, 0, 0, 0.8); }
         #video-container { position: relative; }
         #ai-canvas { position: absolute; top: 0; left: 0; }
-        /* Ajuste para inputs no tema claro */
         input:not([type="checkbox"]), select {
             border: 1px solid #e5e7eb !important;
             background-color: white !important;
@@ -50,8 +53,8 @@
             <div class="p-4 flex justify-between items-center border-b border-gray-100">
                 <h1 class="text-2xl font-bold text-primary-pink">Estoque Pessoal</h1>
                 <div class="flex items-center space-x-3 text-dark-text">
-                    <i data-lucide="bell" class="w-6 h-6 hover:text-primary-pink cursor-pointer"></i>
-                    <i data-lucide="user-circle" class="w-6 h-6 hover:text-primary-pink cursor-pointer"></i>
+                    <i data-lucide="bell" id="alert-icon" class="w-6 h-6 hover:text-primary-pink cursor-pointer text-gray-400"></i>
+                    <i data-lucide="settings" class="w-6 h-6 hover:text-primary-pink cursor-pointer"></i>
                 </div>
             </div>
 
@@ -79,9 +82,9 @@
                         <i data-lucide="scan-line" class="w-7 h-7 text-primary-pink mb-1"></i>
                         <span class="text-xs font-medium">Scanner</span>
                     </button>
-                    <button id="manual-entry-btn" title="Entrada Manual" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
-                        <i data-lucide="package-plus" class="w-7 h-7 text-primary-pink mb-1"></i>
-                        <span class="text-xs font-medium">Entrada</span>
+                    <button id="manual-entry-btn" title="Ver Estoque" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
+                        <i data-lucide="package" class="w-7 h-7 text-primary-pink mb-1"></i>
+                        <span class="text-xs font-medium">Ver Estoque</span>
                     </button>
                     <button id="low-stock-alert-btn" title="Estoque Baixo" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
                         <i data-lucide="alert-triangle" class="w-7 h-7 text-red-500 mb-1"></i>
@@ -94,9 +97,9 @@
                 </h2>
                 <div class="space-y-4">
                     <div>
-                        <label for="product-name" class="block text-sm font-medium text-dark-text mb-1">Nome do Produto</label>
+                        <label for="product-name" class="block text-sm font-medium text-dark-text mb-1">Nome do Produto (Ex: Tassel Vermelho)</label>
                         <div class="flex items-center gap-2">
-                            <input type="text" id="product-name" placeholder="Ex: Resma Papel A4" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
+                            <input type="text" id="product-name" placeholder="Nome + Cor/Variação" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
                             <button id="ai-register-btn" title="Cadastrar com Foto (IA)" class="bg-gray-200 hover:bg-gray-300 p-2 rounded-lg transition text-dark-text">
                                 <i data-lucide="camera" class="w-5 h-5"></i>
                             </button>
@@ -105,20 +108,25 @@
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label for="product-qty" class="block text-sm font-medium text-dark-text mb-1">Qtd. Inicial (Embalagem)</label>
+                            <label for="product-qty" class="block text-sm font-medium text-dark-text mb-1">Qtd. Inicial (Unidades)</label>
                             <input type="number" id="product-qty" value="1" min="0" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
                         </div>
                         <div>
-                            <label for="product-qty-package" class="block text-sm font-medium text-dark-text mb-1">Itens p/ Embalagem (Ex: 500)</label>
-                            <input type="number" id="product-qty-package" value="1" min="1" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
+                            <label for="min-alert-qty" class="block text-sm font-medium text-dark-text mb-1">Qtd. Mínima p/ Alerta</label>
+                            <input type="number" id="min-alert-qty" value="3" min="1" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
                         </div>
                     </div>
 
                     <div>
-                         <label for="product-unit" class="block text-sm font-medium text-dark-text mb-1">Unidade de Consumo (Ex: Folhas)</label>
-                         <input type="text" id="product-unit" value="unidade" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm">
+                         <label for="product-category" class="block text-sm font-medium text-dark-text mb-1">Categoria</label>
+                         <div class="flex gap-2">
+                             <select id="product-category" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm"></select>
+                             <button id="manage-categories-btn" title="Gerenciar Categorias" class="bg-gray-200 hover:bg-gray-300 p-2 rounded-lg transition text-dark-text">
+                                <i data-lucide="settings-2" class="w-5 h-5"></i>
+                            </button>
+                         </div>
                     </div>
-
+                    
                     <button id="add-product-btn" class="w-full bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center shadow-lg">
                         <i data-lucide="plus-circle" class="mr-2"></i> Adicionar Produto
                     </button>
@@ -146,31 +154,20 @@
 
                 <div id="scan-result-container" class="hidden w-full text-center fade-in">
                     <p class="text-gray-500 mb-2">Produto Encontrado:</p>
-                    <p id="scanned-product-name" class="text-2xl font-bold text-primary-pink mb-1"></p>
+                    <p id="scanned-product-name" class="text-2xl font-bold text-dark-text mb-1"></p>
                     <p id="scanned-product-details" class="text-sm text-gray-500 mb-4 font-mono"></p>
+                    
                     <p class="text-lg mb-4 text-dark-text">
-                        Total em Estoque: <span id="scanned-product-qty" class="font-bold"></span> 
-                        (<span id="scanned-product-unit-total" class="font-semibold"></span>)
+                        Estoque Atual: <span id="scanned-product-qty" class="font-bold text-primary-pink"></span>
                     </p>
                     
                     <div class="grid grid-cols-2 gap-4">
-                        <button id="decrease-qty-embalagem-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-md">
-                            <i data-lucide="minus" class="mr-1 w-5 h-5"></i> Saída (1 Embalagem)
+                        <button id="decrease-qty-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-md">
+                            <i data-lucide="minus" class="mr-1 w-5 h-5"></i> Saída (-1 Unidade)
                         </button>
-                        <button id="increase-qty-embalagem-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-md">
-                            <i data-lucide="plus" class="mr-1 w-5 h-5"></i> Entrada (1 Embalagem)
+                        <button id="increase-qty-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-md">
+                            <i data-lucide="plus" class="mr-1 w-5 h-5"></i> Entrada (+1 Unidade)
                         </button>
-                    </div>
-
-                    <div class="mt-4 p-3 bg-gray-100 rounded-lg">
-                        <p class="text-sm font-medium text-dark-text mb-2">Controle Fracionado:</p>
-                        <div class="flex justify-center items-center gap-2">
-                            <input type="number" id="fractional-qty-input" value="100" min="1" class="w-20 rounded-lg px-2 py-1 text-center text-dark-text focus:ring-primary-pink">
-                            <span id="fractional-unit-label" class="text-sm text-gray-700">unidades</span>
-                            <button id="decrease-qty-fractional-btn" class="bg-red-400 hover:bg-red-500 text-white font-bold py-1 px-3 rounded-lg transition duration-300 flex items-center justify-center text-sm shadow-sm">
-                                <i data-lucide="chevrons-down" class="w-4 h-4"></i>
-                            </button>
-                        </div>
                     </div>
 
                     <button id="close-scan-result-btn" class="mt-4 text-gray-500 hover:text-primary-pink transition">Fechar</button>
@@ -189,10 +186,28 @@
                 <canvas id="ai-canvas" class="w-full h-full"></canvas>
             </div>
             <div id="ai-results" class="mb-4">
-                <p class="text-gray-600">Aponte a câmera para um objeto. Clique no nome para selecioná-lo:</p>
+                <p class="text-gray-600">Aponte a câmera para um objeto. Clique no nome sugerido para selecioná-lo e finalize o cadastro:</p>
                 <div id="ai-buttons-container" class="flex flex-wrap justify-center gap-2 mt-2"></div>
             </div>
             <button id="ai-cancel-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition shadow-md">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="category-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg text-dark-text">
+            <h3 class="text-2xl font-bold mb-4 border-b pb-2">Gerenciar Categorias</h3>
+            
+            <div id="categories-list" class="space-y-2 mb-4 max-h-60 overflow-y-auto">
+                </div>
+
+            <div class="flex gap-2 mt-4 pt-4 border-t">
+                <input type="text" id="new-category-input" placeholder="Nova Categoria (Ex: Ilhós)" class="flex-grow rounded-lg px-3 py-2 border focus:ring-2 focus:ring-primary-pink">
+                <button id="add-category-btn" class="bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <button id="close-category-modal-btn" class="mt-6 w-full bg-gray-200 hover:bg-gray-300 text-dark-text font-bold py-2 rounded-lg transition">Fechar</button>
         </div>
     </div>
 
@@ -204,22 +219,25 @@
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
 
+            // Elementos de Cadastro
             const productNameInput = document.getElementById('product-name');
             const productQtyInput = document.getElementById('product-qty');
-            const productQtyPackageInput = document.getElementById('product-qty-package');
-            const productUnitInput = document.getElementById('product-unit');
+            const minAlertQtyInput = document.getElementById('min-alert-qty');
+            const productCategorySelect = document.getElementById('product-category');
             const addProductBtn = document.getElementById('add-product-btn');
+            
+            // Elementos de Listagem
             const productListDiv = document.getElementById('product-list');
+            const productSearchInput = document.getElementById('product-search');
+
+            // Elementos do Scanner
             const startScanBtn = document.getElementById('start-scan-btn');
             const startScanBtnQuick = document.getElementById('start-scan-btn-quick');
             const scannerContainer = document.getElementById('scanner-container');
             const scanResultContainer = document.getElementById('scan-result-container');
             const feedbackMessage = document.getElementById('feedback-message');
-            const fractionalQtyInput = document.getElementById('fractional-qty-input');
-            const fractionalUnitLabel = document.getElementById('fractional-unit-label');
-            const productSearchInput = document.getElementById('product-search');
-
-            // Elementos da IA
+            
+            // Elementos de IA
             const aiRegisterBtn = document.getElementById('ai-register-btn');
             const aiRegisterBtnQuick = document.getElementById('ai-register-btn-quick');
             const aiModal = document.getElementById('ai-modal');
@@ -229,31 +247,125 @@
             const aiButtonsContainer = document.getElementById('ai-buttons-container');
             const aiCancelBtn = document.getElementById('ai-cancel-btn');
 
+            // Elementos de Categoria
+            const manageCategoriesBtn = document.getElementById('manage-categories-btn');
+            const categoryModal = document.getElementById('category-modal');
+            const closeCategoryModalBtn = document.getElementById('close-category-modal-btn');
+            const newCategoryInput = document.getElementById('new-category-input');
+            const addCategoryBtn = document.getElementById('add-category-btn');
+            const categoriesListDiv = document.getElementById('categories-list');
+
             let html5QrCode;
             let products = [];
+            let categories = [];
             let lastScannedProductId = null;
 
-            // Variáveis da IA
             let aiModel = null;
             let videoStream = null;
             let detectionInterval = null;
 
+            // Mapeamento simples de classes COCO-SSD para Português (para melhor UX)
+            const ptMap = {
+                'person': 'Pessoa', 'bicycle': 'Bicicleta', 'car': 'Carro', 'motorcycle': 'Moto', 'airplane': 'Avião',
+                'bus': 'Ônibus', 'train': 'Trem', 'truck': 'Caminhão', 'boat': 'Barco', 'traffic light': 'Semáforo',
+                'fire hydrant': 'Hidrante', 'stop sign': 'Placa de Pare', 'parking meter': 'Parquímetro', 'bench': 'Banco',
+                'bird': 'Pássaro', 'cat': 'Gato', 'dog': 'Cachorro', 'horse': 'Cavalo', 'sheep': 'Ovelha', 'cow': 'Vaca',
+                'elephant': 'Elefante', 'bear': 'Urso', 'zebra': 'Zebra', 'giraffe': 'Girafa', 'backpack': 'Mochila',
+                'umbrella': 'Guarda-chuva', 'handbag': 'Bolsa', 'tie': 'Gravata', 'suitcase': 'Mala', 'frisbee': 'Frisbee',
+                'skis': 'Esquis', 'snowboard': 'Snowboard', 'sports ball': 'Bola Esportiva', 'kite': 'Pipa', 'baseball bat': 'Bastão',
+                'baseball glove': 'Luva de Baseball', 'skateboard': 'Skate', 'surfboard': 'Prancha de Surf', 'tennis racket': 'Raquete',
+                'bottle': 'Garrafa', 'wine glass': 'Taça de Vinho', 'cup': 'Copo', 'fork': 'Garfo', 'knife': 'Faca', 'spoon': 'Colher',
+                'bowl': 'Tigela', 'banana': 'Banana', 'apple': 'Maçã', 'sandwich': 'Sanduíche', 'orange': 'Laranja', 'broccoli': 'Brócolis',
+                'carrot': 'Cenoura', 'hot dog': 'Cachorro-quente', 'pizza': 'Pizza', 'donut': 'Donut', 'cake': 'Bolo', 'chair': 'Cadeira',
+                'couch': 'Sofá', 'potted plant': 'Planta em Vaso', 'bed': 'Cama', 'dining table': 'Mesa de Jantar', 'toilet': 'Vaso Sanitário',
+                'tv': 'TV', 'laptop': 'Notebook', 'mouse': 'Mouse', 'remote': 'Controle Remoto', 'keyboard': 'Teclado',
+                'cell phone': 'Celular', 'microwave': 'Micro-ondas', 'oven': 'Forno', 'toaster': 'Torradeira', 'sink': 'Pia',
+                'refrigerator': 'Geladeira', 'book': 'Livro', 'clock': 'Relógio', 'vase': 'Vaso', 'scissors': 'Tesoura',
+                'teddy bear': 'Urso de Pelúcia', 'hair drier': 'Secador de Cabelo', 'toothbrush': 'Escova de Dentes',
+                'pen': 'Caneta', 'pencil': 'Lápis', 'eraser': 'Borracha', 'paper': 'Papel', 'box': 'Caixa' 
+            };
+            function mapToPortuguese(className) {
+                return ptMap[className.toLowerCase()] || className.charAt(0).toUpperCase() + className.slice(1);
+            }
+
             // --- Gerenciamento de Dados ---
-            function loadProducts() {
+            function loadData() {
                 const storedProducts = localStorage.getItem('stockControlProducts');
+                const storedCategories = localStorage.getItem('stockControlCategories');
                 if (storedProducts) products = JSON.parse(storedProducts);
+                if (storedCategories) categories = JSON.parse(storedCategories);
+
+                // Garante que a categoria "Geral" exista se estiver vazio
+                if (categories.length === 0) {
+                    categories.push('Geral');
+                    saveCategories();
+                }
+
+                renderCategorySelect();
                 renderProductList();
+                updateGlobalAlertIcon();
             }
             function saveProducts() {
                 localStorage.setItem('stockControlProducts', JSON.stringify(products));
+                updateGlobalAlertIcon();
             }
-            
-            // Refinamento: Estilo Card e Alerta de Estoque Baixo
+            function saveCategories() {
+                localStorage.setItem('stockControlCategories', JSON.stringify(categories));
+                renderCategorySelect();
+                renderCategoriesList();
+            }
+
+            function updateGlobalAlertIcon() {
+                const lowStockCount = products.filter(p => p.quantity <= p.minAlertQty).length;
+                const alertIcon = document.getElementById('alert-icon');
+                
+                if (lowStockCount > 0) {
+                    alertIcon.classList.replace('text-gray-400', 'text-red-500');
+                    alertIcon.dataset.lucide = 'alert-triangle';
+                } else {
+                    alertIcon.classList.replace('text-red-500', 'text-gray-400');
+                    alertIcon.dataset.lucide = 'bell';
+                }
+                lucide.createIcons();
+            }
+
+            // --- Renderização de Categorias ---
+            function renderCategorySelect() {
+                productCategorySelect.innerHTML = '';
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    option.textContent = cat;
+                    productCategorySelect.appendChild(option);
+                });
+            }
+
+            function renderCategoriesList() {
+                categoriesListDiv.innerHTML = '';
+                if (categories.length === 0) {
+                    categoriesListDiv.innerHTML = '<p class="text-gray-500 text-sm">Nenhuma categoria cadastrada.</p>';
+                    return;
+                }
+
+                categories.forEach(cat => {
+                    const catElement = document.createElement('div');
+                    catElement.className = 'flex justify-between items-center p-2 bg-gray-100 rounded-lg';
+                    catElement.innerHTML = `
+                        <span>${cat}</span>
+                        ${cat !== 'Geral' ? `<button data-category="${cat}" class="delete-category-btn text-gray-400 hover:text-red-500 transition"><i data-lucide="trash-2" class="w-5 h-5"></i></button>` : `<span class="text-xs text-gray-400">Padrão</span>`}
+                    `;
+                    categoriesListDiv.appendChild(catElement);
+                });
+                lucide.createIcons();
+            }
+
+            // --- Renderização de Produtos (Cartões e Alertas) ---
             function renderProductList(filter = '') {
                 productListDiv.innerHTML = '';
                 const filteredProducts = products.filter(p => 
                     p.name.toLowerCase().includes(filter.toLowerCase()) || 
-                    p.id.includes(filter.toLowerCase())
+                    p.id.includes(filter.toLowerCase()) ||
+                    p.category.toLowerCase().includes(filter.toLowerCase())
                 );
                 
                 if (filteredProducts.length === 0) {
@@ -264,27 +376,27 @@
                 const sortedProducts = [...filteredProducts].sort((a, b) => a.name.localeCompare(b.name));
                 
                 sortedProducts.forEach(product => {
-                    const isLowStock = product.quantity <= 5;
-                    const totalUnits = product.quantity * product.qtyPackage;
+                    const isLowStock = product.quantity <= product.minAlertQty;
                     const stockClass = isLowStock ? 'text-red-500 font-extrabold' : 'text-primary-pink font-extrabold';
+                    const borderClass = isLowStock ? 'border-red-400 ring-1 ring-red-400' : 'border-gray-200';
                     
                     const productElement = document.createElement('div');
-                    productElement.className = `fade-in bg-gray-50 p-4 rounded-lg flex justify-between items-center shadow-sm border ${isLowStock ? 'border-red-300' : 'border-gray-200'}`;
+                    productElement.className = `fade-in bg-gray-50 p-4 rounded-lg flex justify-between items-center shadow-md border ${borderClass}`;
                     
                     productElement.innerHTML = `
                         <div class="flex items-center gap-3">
-                            <i data-lucide="${isLowStock ? 'box-alert' : 'package'}" class="w-6 h-6 ${isLowStock ? 'text-red-500' : 'text-primary-pink'}"></i>
+                            <i data-lucide="${isLowStock ? 'box-alert' : 'package'}" class="w-6 h-6 ${isLowStock ? 'text-red-500' : 'text-primary-pink'} shrink-0"></i>
                             <div>
                                 <p class="font-semibold text-dark-text">${product.name}</p>
-                                <p class="text-xs text-gray-400 font-mono">ID: ${product.id}</p>
+                                <p class="text-xs text-gray-500">Cat: ${product.category}</p>
                             </div>
                         </div>
-                        <div class="text-right">
-                            <span class="text-sm font-medium text-gray-700">${product.unit} (Embalagem): </span>
+                        <div class="text-right ml-4">
+                            <span class="text-xs font-medium text-gray-700">Qtd Atual: </span>
                             <span class="text-xl ${stockClass}">${product.quantity}</span>
-                            <p class="text-xs text-gray-500">Total: ${totalUnits} ${product.unit}</p>
+                            <p class="text-xs text-gray-500">Mínimo: ${product.minAlertQty}</p>
                         </div>
-                        <button data-id="${product.id}" class="delete-btn text-gray-400 hover:text-red-500 transition ml-4">
+                        <button data-id="${product.id}" class="delete-btn text-gray-400 hover:text-red-500 transition ml-4 shrink-0">
                             <i data-lucide="trash-2" class="w-5 h-5"></i>
                         </button>
                     `;
@@ -300,15 +412,15 @@
                 setTimeout(() => feedbackMessage.classList.add('hidden'), 4000);
             }
 
-            // --- Lógica de Produtos Fracionados ---
+            // --- Lógica Principal de Estoque ---
             function addProduct() {
                 const name = productNameInput.value.trim();
                 const quantity = parseInt(productQtyInput.value, 10);
-                const qtyPackage = parseInt(productQtyPackageInput.value, 10);
-                const unit = productUnitInput.value.trim();
+                const minAlertQty = parseInt(minAlertQtyInput.value, 10);
+                const category = productCategorySelect.value;
 
-                if (!name || isNaN(quantity) || quantity < 0 || isNaN(qtyPackage) || qtyPackage < 1 || !unit) {
-                    alert('Por favor, preencha o nome, quantidade inicial (embalagem), quantidade por embalagem e a unidade de consumo.');
+                if (!name || isNaN(quantity) || quantity < 0 || isNaN(minAlertQty) || minAlertQty < 1 || !category) {
+                    alert('Por favor, preencha o nome, quantidade inicial, quantidade mínima para alerta e selecione uma categoria.');
                     return;
                 }
                 
@@ -316,18 +428,20 @@
                     id: 'prod-' + Date.now(), 
                     name: name, 
                     quantity: quantity,
-                    qtyPackage: qtyPackage, // Quantidade de unidades por embalagem
-                    unit: unit            // Unidade de consumo (folhas, metros, etc.)
+                    minAlertQty: minAlertQty,
+                    category: category
                 };
                 
                 products.push(newProduct);
                 saveProducts();
                 renderProductList();
+                
+                // Limpa o formulário
                 productNameInput.value = '';
                 productQtyInput.value = '1';
-                productQtyPackageInput.value = '1';
-                productUnitInput.value = 'unidade';
-                showFeedback(`Produto "${name}" adicionado com sucesso!`);
+                minAlertQtyInput.value = '3';
+                
+                showFeedback(`Produto "${name}" adicionado com sucesso na categoria "${category}"!`);
             }
             
             function deleteProduct(productId) {
@@ -339,50 +453,20 @@
                 }
             }
             
-            // Refinamento: Suporte para Entrada/Saída de Embalagem e Fracionado
-            function updateQuantity(productId, change, isFractional = false) {
+            // Lógica simplificada de atualização (+1 ou -1 unidade)
+            function updateQuantity(productId, change) {
                 const product = products.find(p => p.id === productId);
                 if (product) {
-                    let changeInEmbalagem = change;
-
-                    if (isFractional) {
-                        const fractionalChange = parseInt(fractionalQtyInput.value, 10);
-                        if (isNaN(fractionalChange) || fractionalChange <= 0) {
-                            showFeedback('Insira uma quantidade fracionada válida.', true);
-                            return;
-                        }
-                        // Calcula a mudança total em unidades de consumo
-                        const currentTotalUnits = product.quantity * product.qtyPackage;
-                        const newTotalUnits = currentTotalUnits + (change > 0 ? fractionalChange : -fractionalChange);
-
-                        if (newTotalUnits < 0) {
-                             showFeedback('A saída fracionada excede o estoque atual.', true);
-                             return;
-                        }
-
-                        // Recalcula a quantidade de embalagens (arredondamento para cima para ter pelo menos 1 item)
-                        const newQuantity = Math.max(0, Math.ceil(newTotalUnits / product.qtyPackage));
-                        changeInEmbalagem = newQuantity - product.quantity; // O quanto a qty de embalagem mudou
-
-                        // Aqui optamos por não mudar a quantidade de embalagem, mas sim a quantidade de unidades
-                        // Para simplificar e representar melhor o estoque, vamos manter a lógica de embalagens.
-                        // O uso de Math.ceil garante que se houver 1 folha, o estoque é 1 embalagem (incompleta).
-                        product.quantity = newQuantity;
-
-                    } else {
-                        // Entrada/Saída de embalagens inteiras
-                        product.quantity = Math.max(0, product.quantity + changeInEmbalagem);
-                    }
+                    product.quantity = Math.max(0, product.quantity + change);
                     
                     saveProducts();
-                    renderProductList(productSearchInput.value); // Renderiza com filtro ativo, se houver
+                    renderProductList(productSearchInput.value); 
                     
                     // Atualiza a visualização do scanner
-                    const totalUnits = product.quantity * product.qtyPackage;
                     document.getElementById('scanned-product-qty').textContent = product.quantity;
-                    document.getElementById('scanned-product-unit-total').textContent = `(${totalUnits} ${product.unit})`;
 
-                    showFeedback(`${changeInEmbalagem > 0 ? 'Entrada' : 'Saída'} registrada para "${product.name}".`);
+                    const action = change > 0 ? 'Entrada' : 'Saída';
+                    showFeedback(`${action} de ${Math.abs(change)} registrada para "${product.name}".`);
                 }
             }
             
@@ -392,28 +476,16 @@
                 if (product) {
                     lastScannedProductId = product.id;
                     document.getElementById('scanned-product-name').textContent = product.name;
-                    document.getElementById('scanned-product-details').textContent = `ID: ${product.id} | ${product.qtyPackage} ${product.unit} p/ Embalagem`;
-                    
-                    // Atualiza a seção de controle fracionado
-                    fractionalUnitLabel.textContent = product.unit;
-                    fractionalQtyInput.value = Math.floor(product.qtyPackage / 2) || 1; // Sugere metade da embalagem
+                    document.getElementById('scanned-product-details').textContent = `Categoria: ${product.category} | Mínimo: ${product.minAlertQty}`;
                     
                     // Atualiza a exibição de estoque
-                    const totalUnits = product.quantity * product.qtyPackage;
                     document.getElementById('scanned-product-qty').textContent = product.quantity;
-                    document.getElementById('scanned-product-unit-total').textContent = `(${totalUnits} ${product.unit})`;
                     
-                    // Atualiza os textos dos botões
-                    document.getElementById('decrease-qty-embalagem-btn').innerHTML = `<i data-lucide="minus" class="mr-1 w-5 h-5"></i> Saída (1 Embalagem)`;
-                    document.getElementById('increase-qty-embalagem-btn').innerHTML = `<i data-lucide="plus" class="mr-1 w-5 h-5"></i> Entrada (1 Embalagem)`;
-                    lucide.createIcons();
-
-
                     scannerContainer.classList.add('hidden');
                     scanResultContainer.classList.remove('hidden');
                     stopScanner();
                 } else {
-                    showFeedback(`Produto com ID "${decodedText}" não encontrado.`, true);
+                    showFeedback(`Produto com QR Code ID "${decodedText}" não encontrado.`, true);
                 }
             }
             function onScanFailure(error) { /* Silencioso */ }
@@ -422,7 +494,6 @@
                 if (!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader");
                 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
                 
-                // Verifica se já está escaneando antes de iniciar
                 if (html5QrCode.isScanning) {
                     stopScanner();
                     return;
@@ -444,18 +515,16 @@
                         startScanBtn.classList.replace('bg-red-500', 'bg-primary-pink');
                         startScanBtn.classList.replace('hover:bg-red-600', 'hover:bg-pink-700');
                         lucide.createIcons();
-                    }).catch(err => {
-                        // console.error("Erro ao parar scanner:", err); 
-                    });
+                    }).catch(err => { /* Erro ao parar silencioso */ });
                 }
             }
             
-            // --- LÓGICA DA IA ---
+            // --- LÓGICA DA IA (COCO-SSD) ---
             async function loadAIModel() {
                 if (!aiModel) {
                     try {
                         aiModel = await cocoSsd.load();
-                        aiStatus.textContent = "Modelo carregado! Aponte para um objeto.";
+                        aiStatus.textContent = "Modelo carregado! Aponte para o material.";
                         aiStatus.classList.replace('text-primary-pink', 'text-green-500');
                     } catch (err) {
                         console.error("Erro ao carregar modelo de IA:", err);
@@ -474,7 +543,8 @@
                     aiVideo.srcObject = videoStream;
                     aiVideo.onloadedmetadata = () => {
                         aiVideo.play();
-                        detectionInterval = setInterval(predictFrame, 200); 
+                        // Ajusta a detecção para ser um pouco mais lenta
+                        detectionInterval = setInterval(predictFrame, 500); 
                     };
                 } catch (err) {
                     console.error("Erro ao acessar a câmera para IA:", err);
@@ -492,8 +562,6 @@
                     detectionInterval = null;
                 }
                 aiModal.classList.add('hidden');
-                const ctx = aiCanvas.getContext('2d');
-                ctx.clearRect(0, 0, aiCanvas.width, aiCanvas.height);
                 aiButtonsContainer.innerHTML = '';
             }
 
@@ -502,42 +570,36 @@
 
                 const predictions = await aiModel.detect(aiVideo);
                 
-                aiCanvas.width = aiVideo.videoWidth;
-                aiCanvas.height = aiVideo.videoHeight;
+                // Redimensiona o canvas para o vídeo (apenas uma vez)
+                if (aiCanvas.width === 0) {
+                    aiCanvas.width = aiVideo.videoWidth;
+                    aiCanvas.height = aiVideo.videoHeight;
+                }
 
                 const ctx = aiCanvas.getContext('2d');
                 ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                ctx.font = '16px Inter'; // Configura a fonte para o texto
                 
                 aiButtonsContainer.innerHTML = '';
                 const detectedClasses = new Set(); 
 
                 predictions.forEach(prediction => {
-                    // Desenha a caixa
+                    const portugueseName = mapToPortuguese(prediction.class);
+
+                    // Desenha a caixa (mantido para visualização)
                     ctx.beginPath();
                     ctx.rect(...prediction.bbox);
                     ctx.lineWidth = 2;
                     ctx.strokeStyle = '#e91e63'; 
-                    ctx.fillStyle = '#e91e63';
                     ctx.stroke();
-                    // Desenha o fundo do texto
-                    const text = `${prediction.class} (${Math.round(prediction.score * 100)}%)`;
-                    const textWidth = ctx.measureText(text).width + 8;
-                    const textHeight = 20; 
-                    ctx.fillRect(prediction.bbox[0], prediction.bbox[1] > textHeight ? prediction.bbox[1] - textHeight : 0, textWidth, textHeight);
-                    // Desenha o texto
-                    ctx.fillStyle = 'white';
-                    ctx.fillText(text, prediction.bbox[0] + 4, prediction.bbox[1] > 10 ? prediction.bbox[1] - 5 : 15);
-                    ctx.fillStyle = '#e91e63';
-                    
-                    if (!detectedClasses.has(prediction.class)) {
-                        detectedClasses.add(prediction.class);
+
+                    // Adiciona o botão de sugestão
+                    if (!detectedClasses.has(portugueseName)) {
+                        detectedClasses.add(portugueseName);
                         const btn = document.createElement('button');
-                        const className = prediction.class.charAt(0).toUpperCase() + prediction.class.slice(1);
-                        btn.textContent = className;
+                        btn.textContent = `Sugestão: ${portugueseName}`;
                         btn.className = "bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md text-sm";
                         btn.onclick = () => {
-                            productNameInput.value = className;
+                            productNameInput.value = portugueseName;
                             stopAIDetection();
                         };
                         aiButtonsContainer.appendChild(btn);
@@ -549,7 +611,7 @@
             // --- Event Listeners ---
             addProductBtn.addEventListener('click', addProduct);
             
-            // Botão Principal e Botão Rápido para Scanner
+            // Scanner
             const toggleScanner = () => {
                 if (html5QrCode && html5QrCode.isScanning) stopScanner();
                 else {
@@ -561,20 +623,12 @@
             startScanBtn.addEventListener('click', toggleScanner);
             startScanBtnQuick.addEventListener('click', toggleScanner);
 
-            // Botões de IA
-            aiRegisterBtn.addEventListener('click', startAIDetection);
-            aiRegisterBtnQuick.addEventListener('click', startAIDetection);
-
             // Controle de Estoque na Leitura de QR
-            document.getElementById('increase-qty-embalagem-btn').addEventListener('click', () => { 
+            document.getElementById('increase-qty-btn').addEventListener('click', () => { 
                 if (lastScannedProductId) updateQuantity(lastScannedProductId, 1); 
             });
-            document.getElementById('decrease-qty-embalagem-btn').addEventListener('click', () => { 
+            document.getElementById('decrease-qty-btn').addEventListener('click', () => { 
                 if (lastScannedProductId) updateQuantity(lastScannedProductId, -1); 
-            });
-            document.getElementById('decrease-qty-fractional-btn').addEventListener('click', () => {
-                 // Saída fracionada: change é -1 para indicar saída, mas a lógica de cálculo está em updateQuantity
-                if (lastScannedProductId) updateQuantity(lastScannedProductId, -1, true); 
             });
 
             // Fechar Resultado do Scan
@@ -582,7 +636,6 @@
                 scanResultContainer.classList.add('hidden');
                 scannerContainer.classList.remove('hidden');
                 lastScannedProductId = null;
-                // Assegura que o botão de scanner volte ao estado inicial
                 stopScanner();
             });
             
@@ -597,21 +650,64 @@
                 renderProductList(e.target.value);
             });
             
-            // Botão de Alerta (apenas filtro simples por enquanto)
+            // Botão de Alerta
             document.getElementById('low-stock-alert-btn').addEventListener('click', () => {
-                 const lowStockProducts = products.filter(p => p.quantity <= 5);
+                 const lowStockProducts = products.filter(p => p.quantity <= p.minAlertQty);
                  if (lowStockProducts.length > 0) {
-                     renderProductList(''); // Limpa o filtro de busca
-                     renderProductList('Baixo Estoque'); // Filtra
-                     showFeedback(`Exibindo ${lowStockProducts.length} itens com estoque baixo ($\le 5$ embalagens).`);
+                     renderProductList('Baixo Estoque'); 
+                     showFeedback(`Exibindo ${lowStockProducts.length} itens com estoque baixo.`);
                  } else {
                      showFeedback('Nenhum item com estoque baixo.', false);
                      renderProductList('');
                  }
             });
 
+            // Botões de IA
+            aiRegisterBtn.addEventListener('click', startAIDetection);
+            aiRegisterBtnQuick.addEventListener('click', startAIDetection);
+            aiCancelBtn.addEventListener('click', stopAIDetection);
+            
+            // --- Lógica de Gerenciamento de Categorias ---
+            manageCategoriesBtn.addEventListener('click', () => {
+                renderCategoriesList();
+                categoryModal.classList.remove('hidden');
+            });
+            closeCategoryModalBtn.addEventListener('click', () => {
+                categoryModal.classList.add('hidden');
+            });
 
-            loadProducts();
+            addCategoryBtn.addEventListener('click', () => {
+                const newCat = newCategoryInput.value.trim();
+                if (newCat && !categories.includes(newCat)) {
+                    categories.push(newCat);
+                    saveCategories();
+                    newCategoryInput.value = '';
+                } else if (newCat) {
+                     alert('Categoria já existe!');
+                }
+            });
+
+            categoriesListDiv.addEventListener('click', (e) => {
+                const deleteButton = e.target.closest('.delete-category-btn');
+                if (deleteButton) {
+                    const catToDelete = deleteButton.dataset.category;
+                    if (confirm(`Tem certeza que deseja excluir a categoria "${catToDelete}"? Produtos nela serão movidos para "Geral".`)) {
+                        // Move produtos para a categoria "Geral"
+                        products.forEach(p => {
+                            if (p.category === catToDelete) p.category = 'Geral';
+                        });
+                        saveProducts();
+
+                        // Remove a categoria
+                        categories = categories.filter(cat => cat !== catToDelete);
+                        saveCategories();
+                        renderCategoriesList();
+                    }
+                }
+            });
+
+
+            loadData();
         });
     </script>
 </body>
