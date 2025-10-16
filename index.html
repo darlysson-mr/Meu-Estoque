@@ -104,22 +104,22 @@
                     <i data-lucide="zap" class="mr-2 text-primary-pink w-5 h-5"></i> Ações Rápidas
                 </h2>
                 <div class="grid grid-cols-4 gap-4 mb-8 text-center">
-                    <!-- Cadastrar IA/Foto -->
+                    <!-- Cadastrar IA/Foto (CLICA E ABRE O MODAL) -->
                     <button id="ai-register-btn-quick" title="Cadastrar com Foto (IA)" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
                         <i data-lucide="camera" class="w-7 h-7 text-primary-pink mb-1"></i>
                         <span class="text-xs font-medium">Cad. Foto</span>
                     </button>
-                    <!-- Scanner -->
+                    <!-- Scanner (CLICA, ROLA E INICIA) -->
                     <button id="start-scan-btn-quick" title="Iniciar Scanner" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
                         <i data-lucide="scan-line" class="w-7 h-7 text-primary-pink mb-1"></i>
                         <span class="text-xs font-medium">Scanner</span>
                     </button>
-                    <!-- Estoque Geral -->
+                    <!-- Estoque Geral (CLICA E MOSTRA TUDO) -->
                     <button id="manual-entry-btn" title="Ver Estoque" class="flex flex-col items-center p-2 rounded-lg hover:bg-soft-pink/30 transition text-dark-text">
                         <i data-lucide="package" class="w-7 h-7 text-primary-pink mb-1"></i>
                         <span class="text-xs font-medium">Ver Estoque</span>
                     </button>
-                    <!-- Alerta Estoque Baixo -->
+                    <!-- Alerta Estoque Baixo (CLICA E FILTRA) -->
                     <button id="low-stock-alert-btn" title="Estoque Baixo" class="flex flex-col items-center p-2 rounded-lg hover:bg-red-500/30 transition text-dark-text">
                         <i data-lucide="alert-triangle" class="w-7 h-7 text-red-500 mb-1"></i>
                         <span class="text-xs font-medium">Alertas</span>
@@ -189,8 +189,8 @@
                 </div>
             </div>
 
-            <!-- COLUNA DE SCANNER -->
-            <div class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
+            <!-- COLUNA DE SCANNER (ID: scanner-container) -->
+            <div id="scanner-main-section" class="bg-white p-6 rounded-xl shadow-lg flex flex-col items-center justify-center">
                 <h2 class="text-2xl font-semibold mb-4 text-center text-dark-text">
                     <i data-lucide="scan-line" class="inline-block mr-2 text-primary-pink"></i> Scanner de QR Code
                 </h2>
@@ -270,18 +270,18 @@
                 </div>
             </div>
 
-            <!-- Campo de Quantidade com Botoes +/- GRANDES -->
+            <!-- Campo de Quantidade com Botoes +/- GRANDES (CORRIGIDO PARA MOBILE) -->
             <div class="mb-6 border p-3 rounded-lg bg-light-bg">
                 <label for="edit-quantity-input" class="block text-sm font-medium text-dark-text mb-2 text-center">Ajustar Quantidade Total:</label>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-3">
                     <!-- Botão Saída (-) -->
-                    <button id="decrease-btn-edit" title="Saída (Subtrair 1)" class="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition font-bold text-2xl w-1/4 flex justify-center items-center h-12 shadow-md">-</button>
+                    <button id="decrease-btn-edit" title="Saída (Subtrair 1)" class="bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg transition font-bold text-2xl w-14 h-14 flex justify-center items-center shadow-md shrink-0">-</button>
                     
                     <!-- Campo de Input -->
-                    <input type="number" id="edit-quantity-input" min="0" class="flex-grow text-center rounded-lg px-3 py-2 border focus:ring-2 focus:ring-primary-pink text-2xl font-bold h-12">
+                    <input type="number" id="edit-quantity-input" min="0" class="flex-grow text-center rounded-lg px-3 py-2 border focus:ring-2 focus:ring-primary-pink text-3xl font-bold h-14">
                     
                     <!-- Botão Entrada (+) -->
-                    <button id="increase-btn-edit" title="Entrada (Adicionar 1)" class="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition font-bold text-2xl w-1/4 flex justify-center items-center h-12 shadow-md">+</button>
+                    <button id="increase-btn-edit" title="Entrada (Adicionar 1)" class="bg-green-500 hover:bg-green-600 text-white py-2 rounded-lg transition font-bold text-2xl w-14 h-14 flex justify-center items-center shadow-md shrink-0">+</button>
                 </div>
                 <p class="text-xs text-gray-500 mt-2 text-center">Use o campo acima para definir a nova quantidade total (Entrada ou Saída).</p>
             </div>
@@ -345,6 +345,7 @@
             const productSearchInput = document.getElementById('product-search');
 
             // Elementos do Scanner
+            const scannerMainSection = document.getElementById('scanner-main-section');
             const startScanBtn = document.getElementById('start-scan-btn');
             const startScanBtnQuick = document.getElementById('start-scan-btn-quick');
             const scannerContainer = document.getElementById('scanner-container');
@@ -382,6 +383,10 @@
             const confirmMessage = document.getElementById('confirm-message');
             const confirmYesBtn = document.getElementById('confirm-yes-btn');
             const confirmNoBtn = document.getElementById('confirm-no-btn');
+            
+            // Ações Rápidas
+            const manualEntryBtn = document.getElementById('manual-entry-btn');
+            const lowStockAlertBtn = document.getElementById('low-stock-alert-btn');
 
             
             // Variáveis de Estado
@@ -463,13 +468,15 @@
                 
                 const isAlertFilter = filter.toLowerCase() === 'baixo estoque';
 
+                // CORREÇÃO: A busca por produto funciona por Nome, ID e Categoria!
                 const filteredProducts = products.filter(p => {
                     if (isAlertFilter) {
                         return p.quantity <= p.minAlertQty;
                     }
-                    return p.name.toLowerCase().includes(filter.toLowerCase()) || 
-                           p.id.includes(filter.toLowerCase()) ||
-                           p.category.toLowerCase().includes(filter.toLowerCase());
+                    const searchLower = filter.toLowerCase();
+                    return p.name.toLowerCase().includes(searchLower) || 
+                           p.id.includes(searchLower) ||
+                           p.category.toLowerCase().includes(searchLower);
                 });
                 
                 if (filteredProducts.length === 0) {
@@ -678,10 +685,81 @@
 
 
             // --- LÓGICA DA IA/FOTO (mantida) ---
-            async function loadAIModel() { /* Mantida */ }
-            async function startAIDetection() { /* Mantida */ }
-            function stopAIDetection() { /* Mantida */ }
-            async function predictFrame() { /* Mantida */ }
+            // As funções loadAIModel, startAIDetection, stopAIDetection e predictFrame são mantidas.
+            // Apenas a chamada é alterada para o botão rápido.
+
+            async function loadAIModel() {
+                aiStatus.textContent = 'Carregando modelo de IA...';
+                try {
+                    aiModel = await cocoSsd.load();
+                    aiStatus.textContent = 'Modelo de IA carregado. Pronto para detectar.';
+                    capturePhotoBtn.disabled = false;
+                } catch (error) {
+                    aiStatus.textContent = 'Erro ao carregar modelo de IA.';
+                    console.error("AI Model Load Error:", error);
+                }
+            }
+
+            async function startAIDetection() {
+                aiModal.classList.remove('hidden');
+                if (!aiModel) await loadAIModel();
+
+                aiStatus.textContent = 'Aguardando câmera...';
+                try {
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    aiVideo.srcObject = videoStream;
+                    
+                    aiVideo.onloadedmetadata = () => {
+                        aiVideo.play();
+                        aiStatus.textContent = 'Câmera ativa. Detectando objetos...';
+                        detectionInterval = setInterval(predictFrame, 1000); // Tenta detectar a cada 1 segundo
+                    };
+                } catch (err) {
+                    aiStatus.textContent = 'Erro ao acessar a câmera. Verifique as permissões.';
+                    console.error("Camera Access Error:", err);
+                }
+            }
+            
+            function stopAIDetection() {
+                aiModal.classList.add('hidden');
+                if (detectionInterval) clearInterval(detectionInterval);
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                }
+                aiVideo.srcObject = null;
+            }
+
+            async function predictFrame() {
+                if (!aiModel || aiVideo.paused || aiVideo.ended) return;
+
+                const predictions = await aiModel.detect(aiVideo);
+                aiButtonsContainer.innerHTML = '';
+                
+                if (predictions.length > 0) {
+                    aiStatus.textContent = `Itens detectados: ${predictions.length}`;
+                    const uniqueLabels = new Set();
+
+                    predictions.forEach(p => {
+                        const label = mapToPortuguese(p.class);
+                        if (!uniqueLabels.has(label)) {
+                            uniqueLabels.add(label);
+                            
+                            const button = document.createElement('button');
+                            button.textContent = label;
+                            button.className = 'bg-soft-pink text-primary-pink font-semibold text-sm px-3 py-1 rounded-full hover:bg-primary-pink/30 transition';
+                            button.onclick = () => {
+                                productNameInput.value = label;
+                                stopAIDetection();
+                                showFeedback(`Nome do produto sugerido pela IA: "${label}"`);
+                            };
+                            aiButtonsContainer.appendChild(button);
+                        }
+                    });
+                } else {
+                    aiStatus.textContent = 'Nenhum objeto detectado. Tente mover o produto.';
+                }
+            }
+
 
             capturePhotoBtn.addEventListener('click', () => {
                 if (!aiVideo.srcObject) return;
@@ -707,8 +785,8 @@
             // --- Event Listeners ---
             addProductBtn.addEventListener('click', addProduct);
             
-            // Scanner (mantido)
-            const toggleScanner = () => { /* Mantida */
+            // Scanner 
+            const toggleScanner = () => {
                 if (html5QrCode && html5QrCode.isScanning) stopScanner();
                 else {
                     scanResultContainer.classList.add('hidden');
@@ -716,8 +794,19 @@
                     startScanner();
                 }
             };
+
+            // Listener para o botão Iniciar Scanner (na seção do scanner)
             startScanBtn.addEventListener('click', toggleScanner);
-            startScanBtnQuick.addEventListener('click', toggleScanner);
+            
+            // Listener para o botão Rápido do Scanner (Rola e Inicia)
+            startScanBtnQuick.addEventListener('click', () => {
+                // 1. Rola para a seção do scanner
+                scannerMainSection.scrollIntoView({ behavior: 'smooth' });
+                // 2. Inicia o scanner
+                scanResultContainer.classList.add('hidden');
+                scannerContainer.classList.remove('hidden');
+                startScanner();
+            });
 
             // Controle de Estoque no Scanner (mantido)
             document.getElementById('increase-qty-btn-scan').addEventListener('click', () => { 
@@ -742,23 +831,23 @@
                 if (editButton) openEditModal(editButton.dataset.id);
             });
 
-            // Filtro de Busca (mantido)
+            // Filtro de Busca (mantido - já funciona por Nome, ID e Categoria)
             productSearchInput.addEventListener('input', (e) => {
                 renderProductList(e.target.value);
             });
             
-            // Botão "Ver Estoque" (Ação Rápida)
-            document.getElementById('manual-entry-btn').addEventListener('click', () => {
-                 productSearchInput.value = '';
-                 renderProductList('');
-                 showFeedback('Exibindo todos os produtos.');
+            // Botão "Ver Estoque" (Ação Rápida - LIMPA BUSCA E MOSTRA TUDO)
+            manualEntryBtn.addEventListener('click', () => {
+                 productSearchInput.value = ''; // Limpa a busca
+                 renderProductList(''); // Renderiza tudo
+                 showFeedback('Exibindo todos os produtos (Estoque Geral).');
             });
 
-            // Botão de Alerta (Ação Rápida)
-            document.getElementById('low-stock-alert-btn').addEventListener('click', () => {
+            // Botão de Alerta (Ação Rápida - FILTRA APENAS ESTOQUE BAIXO)
+            lowStockAlertBtn.addEventListener('click', () => {
                  const lowStockProducts = products.filter(p => p.quantity <= p.minAlertQty);
                  if (lowStockProducts.length > 0) {
-                     productSearchInput.value = ''; // Limpa a busca anterior
+                     productSearchInput.value = 'Baixo Estoque'; // Mantém o termo na busca
                      renderProductList('Baixo Estoque'); // Filtra pela string especial
                      showFeedback(`Exibindo ${lowStockProducts.length} itens com estoque baixo.`, true);
                  } else {
@@ -768,7 +857,7 @@
                  }
             });
 
-            // Botões de IA/Foto (mantido)
+            // Botões de IA/Foto (Agora o rápido também inicia a câmera)
             aiRegisterBtn.addEventListener('click', startAIDetection);
             aiRegisterBtnQuick.addEventListener('click', startAIDetection);
             aiCancelBtn.addEventListener('click', stopAIDetection);
@@ -796,8 +885,8 @@
                 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
                 
                 if (html5QrCode.isScanning) {
-                    stopScanner();
-                    return;
+                    // Se já estiver scaneando, apenas garante que os botões estão certos
+                    return; 
                 }
 
                 html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure)
