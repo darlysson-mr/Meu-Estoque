@@ -313,7 +313,26 @@ const ProductCard = ({ product, onEdit, onDelete }) => (
 const ProductModal = ({ product, fileToUpload, onClose, onSave, onProductChange, onFileChange }) => {
     const isEditing = !!product.id;
     const isNewFileSelected = !!fileToUpload;
-    const previewUrl = isNewFileSelected ? URL.createObjectURL(fileToUpload) : product.imageUrl;
+    
+    // NOVO: Gerencia o URL de pré-visualização localmente e garante o cleanup
+    const [localPreviewUrl, setLocalPreviewUrl] = useState(product.imageUrl);
+
+    useEffect(() => {
+        if (fileToUpload) {
+            // Cria um URL temporário para o novo arquivo selecionado
+            const url = URL.createObjectURL(fileToUpload);
+            setLocalPreviewUrl(url);
+
+            // Cleanup function: Revoga o URL temporário quando o componente desmonta
+            // ou quando 'fileToUpload' muda, evitando vazamento de memória.
+            return () => {
+                URL.revokeObjectURL(url);
+            };
+        } else {
+            // Se nenhum arquivo novo for selecionado, volta para o URL do produto (do Firestore)
+            setLocalPreviewUrl(product.imageUrl);
+        }
+    }, [fileToUpload, product.imageUrl]);
 
     return (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 z-50 overflow-y-auto">
@@ -331,10 +350,10 @@ const ProductModal = ({ product, fileToUpload, onClose, onSave, onProductChange,
                             Foto do Produto
                         </label>
                         <div className="flex items-center space-x-4">
-                            {/* Visualização da Imagem Atual/Nova */}
+                            {/* Visualização da Imagem Atual/Nova (usando localPreviewUrl) */}
                             <div className="w-24 h-24 flex-shrink-0 bg-gray-200 rounded-lg overflow-hidden border border-gray-300">
                                 <img
-                                    src={previewUrl || "https://placehold.co/96x96/e5e7eb/4b5563?text=?"}
+                                    src={localPreviewUrl || "https://placehold.co/96x96/e5e7eb/4b5563?text=?"}
                                     alt="Pré-visualização"
                                     className="w-full h-full object-cover"
                                 />
