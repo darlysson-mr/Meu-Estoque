@@ -44,19 +44,11 @@
             background-color: white !important;
             color: #262626 !important;
         }
-        /* CORREÇÃO APLICADA: Tamanho da imagem no formulário de cadastro e modal de edição */
         .product-image {
-            width: 48px; /* Mantido em 48px para o preview de cadastro e modal de edição (w-12 h-12 no HTML) */
+            width: 48px; 
             height: 48px; 
             object-fit: cover;
             border-radius: 6px;
-        }
-        /* NOVO: Estilo para a imagem no item da lista (compacto) - Força 40px */
-        .list-item-image {
-             width: 40px; 
-             height: 40px; 
-             object-fit: cover;
-             border-radius: 6px;
         }
     </style>
 </head>
@@ -239,13 +231,7 @@
     
     <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm text-dark-text">
-            
-            <div class="flex items-center mb-4 border-b pb-2">
-                <button id="back-edit-modal-btn" title="Voltar" class="p-1 text-dark-text hover:text-primary-pink transition">
-                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
-                </button>
-                <h3 class="text-2xl font-bold ml-3 text-primary-pink flex-grow">Ajustar Estoque</h3>
-            </div>
+            <h3 class="text-2xl font-bold mb-4 border-b pb-2 text-primary-pink">Ajustar Estoque</h3>
             
             <div class="flex items-center gap-4 mb-4 border p-3 rounded-lg bg-light-bg">
                 <img id="edit-product-img" src="" alt="Foto do Produto" class="product-image shadow-md w-12 h-12">
@@ -259,22 +245,6 @@
                 </div>
             </div>
             
-            <div class="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
-                <label class="block text-sm font-bold text-dark-text mb-2 flex items-center gap-1">
-                    <i data-lucide="image" class="w-4 h-4"></i> ALTERAR FOTO
-                </label>
-                <div class="flex items-center gap-3">
-                    <img id="edit-product-photo-preview" src="" alt="Nova Foto" class="product-image shadow-md w-16 h-16">
-                    <div class="flex flex-col gap-1">
-                        <button type="button" id="change-image-btn" class="bg-primary-pink text-white text-sm px-3 py-2 rounded-lg hover:bg-pink-700 transition font-medium flex items-center gap-1">
-                            <i data-lucide="camera" class="w-4 h-4"></i> Mudar / Anexar
-                        </button>
-                        <button type="button" id="remove-edit-image-btn" class="text-xs text-red-500 hover:text-red-700 transition underline">
-                            Remover Foto
-                        </button>
-                    </div>
-                </div>
-            </div>
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="bg-green-50 border-green-300 border p-3 rounded-lg">
                     <label for="entry-qty-input" class="block text-sm font-bold text-green-700 mb-1 flex items-center">
@@ -334,8 +304,6 @@
             <button id="close-category-modal-btn" class="mt-6 w-full bg-gray-200 hover:bg-gray-300 text-dark-text font-bold py-2 rounded-lg transition">Fechar</button>
         </div>
     </div>
-    
-    <input type="file" id="edit-image-file-input" accept="image/*" style="display: none;">
 
     <footer class="text-center p-4 text-gray-500 text-sm mt-4 bg-white shadow-inner">
         <p>Criado com IA (TensorFlow.js), Tailwind CSS e html5-qrcode.</p>
@@ -393,16 +361,6 @@
 
             const saveEditBtn = document.getElementById('save-edit-btn');
             const deleteProductBtn = document.getElementById('delete-product-btn'); 
-            const backEditModalBtn = document.getElementById('back-edit-modal-btn'); // NOVO BOTÃO DE VOLTAR
-
-            // NOVO: Elementos de Edição de Foto
-            const editImageFileInput = document.getElementById('edit-image-file-input');
-            const changeImageBtn = document.getElementById('change-image-btn');
-            const removeEditImageBtn = document.getElementById('remove-edit-image-btn');
-            const editProductPhotoPreview = document.getElementById('edit-product-photo-preview');
-            // Placeholder transparente para o preview no modal de edição.
-            const PLACEHOLDER_IMG_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; 
-
 
             // Elementos do Modal de Confirmação
             const confirmModal = document.getElementById('confirm-modal');
@@ -422,7 +380,6 @@
             let lastScannedProductId = null;
             let currentEditingProductId = null;
             let currentCapturedImageBase64 = null; 
-            let currentEditImageBase64 = null; // Base64 da imagem no modal de edição
             
             let aiModel = null;
             let videoStream = null;
@@ -521,32 +478,29 @@
                     const borderClass = isLowStock ? 'border-red-400 ring-1 ring-red-400' : 'border-gray-200';
                     
                     const productElement = document.createElement('div');
-                    
-                    // CORREÇÃO 1: Redução do padding de p-3 para p-2 para compactar o item.
-                    productElement.className = `fade-in bg-gray-50 p-2 rounded-xl flex justify-between items-center shadow-md border ${borderClass}`;
+                    productElement.className = `fade-in bg-gray-50 p-3 rounded-xl flex justify-between items-center shadow-md border ${borderClass}`;
                     
                     // Imagem (se existir) ou um ícone placeholder
-                    // CORREÇÃO 2: Redução da imagem/ícone para w-10 h-10 (40px) e uso de classe .list-item-image no CSS
                     const imageHtml = product.imageBase64 
-                        ? `<img src="${product.imageBase64}" alt="Foto do produto" class="list-item-image shadow-sm">`
+                        ? `<img src="${product.imageBase64}" alt="Foto do produto" class="product-image shadow-sm">`
                         : `<i data-lucide="${isLowStock ? 'box-alert' : 'package'}" class="w-10 h-10 ${isLowStock ? 'text-red-500' : 'text-primary-pink'} shrink-0 p-2 bg-white rounded-lg"></i>`;
 
 
                     productElement.innerHTML = `
-                        <div class="flex items-center gap-2 flex-grow min-w-0"> 
+                        <div class="flex items-center gap-3 flex-grow min-w-0">
                             ${imageHtml}
-                            <div class="flex-grow min-w-0">
-                                <p class="font-semibold text-dark-text leading-tight">${product.name}</p> 
-                                <p class="text-xs text-gray-500 leading-tight">Cat: ${product.category}</p>
+                            <div>
+                                <p class="font-semibold text-dark-text truncate">${product.name}</p>
+                                <p class="text-xs text-gray-500">Cat: ${product.category}</p>
                             </div>
                         </div>
-                        <div class="text-right ml-2 shrink-0 flex flex-col items-end">
+                        <div class="text-right ml-4 shrink-0">
                             <span class="text-xs font-medium text-gray-700">Qtd Atual: </span>
-                            <span class="text-lg ${stockClass} leading-none">${product.quantity}</span>
-                            <p class="text-xs text-gray-500 leading-tight">Mín: ${product.minAlertQty}</p>
+                            <span class="text-xl ${stockClass}">${product.quantity}</span>
+                            <p class="text-xs text-gray-500">Mín: ${product.minAlertQty}</p>
                         </div>
-                        <button data-id="${product.id}" class="edit-btn bg-primary-pink/10 hover:bg-primary-pink/20 text-primary-pink p-1 rounded-lg transition ml-2 shrink-0" title="Editar Quantidade">
-                            <i data-lucide="edit" class="w-4 h-4"></i>
+                        <button data-id="${product.id}" class="edit-btn bg-primary-pink/10 hover:bg-primary-pink/20 text-primary-pink p-2 rounded-lg transition ml-4 shrink-0" title="Editar Quantidade">
+                            <i data-lucide="edit" class="w-5 h-5"></i>
                         </button>
                     `;
                     productListDiv.appendChild(productElement);
@@ -609,11 +563,7 @@
                     newQuantity = Math.max(0, parseInt(newQuantity, 10)); 
                     
                     product.quantity = newQuantity;
-                    // saveProducts() e renderProductList() são chamados dentro de saveEditBtn.click 
-                    // se houver alteração de estoque (que é onde updateQuantity é chamado).
-                    // Para garantir que a lista seja atualizada no meio do processo, vamos chamá-los aqui,
-                    // mas o modal será fechado na função saveEditBtn.click.
-                    saveProducts(); 
+                    saveProducts();
                     renderProductList(productSearchInput.value); 
                     
                     const change = newQuantity - oldQuantity;
@@ -621,9 +571,13 @@
                     const message = change !== 0 ? `${action} de ${Math.abs(change)} unidades registrada para "${product.name}".` : 'Quantidade não alterada.';
                     
                     showFeedback(message);
-                    return true; // Sucesso
+
+                    // Se estiver no modal de edição, atualiza a lista e fecha
+                    if (currentEditingProductId) {
+                         editModal.classList.add('hidden');
+                         currentEditingProductId = null;
+                    }
                 }
-                return false;
             }
 
             function updateQuantityFromScan(productId, change) {
@@ -641,7 +595,7 @@
                 }
             }
             
-            // --- Lógica do Modal de Edição (Entrada/Saída/Foto) ---
+            // --- Lógica do Modal de Edição (Entrada/Saída) ---
             function openEditModal(productId) {
                 const product = products.find(p => p.id === productId);
                 if (!product) return;
@@ -656,23 +610,13 @@
                 exitQtyInput.value = 0;
                 currentStockQty.textContent = product.quantity;
                 
-                // NOVO: Carregar a imagem existente para a prévia e a variável de controle
-                currentEditImageBase64 = product.imageBase64 || null;
-
-                // Define as prévias da foto
-                const imgSource = currentEditImageBase64 
-                    ? currentEditImageBase64 
-                    : 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
-                
-                editProductImg.src = imgSource;
-                editProductPhotoPreview.src = currentEditImageBase64 || PLACEHOLDER_IMG_SRC; 
-                editProductImg.classList.toggle('bg-gray-100', !product.imageBase64);
-                
                 // Atualiza a visualização da prévia
                 updatePreview();
+                
+                editProductImg.src = product.imageBase64 || 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
+                editProductImg.classList.toggle('bg-gray-100', !product.imageBase64);
 
                 editModal.classList.remove('hidden');
-                lucide.createIcons(); // Garante que os novos ícones do modal são criados
             }
             
             // Função para calcular a prévia do estoque
@@ -686,7 +630,7 @@
                 
                 // Garante que a Saída não exceda o estoque disponível + entradas
                 const safeExit = Math.min(currentQty + entry, exit);
-                // exitQtyInput.value = safeExit; // Não forçar a atualização do input, apenas do cálculo
+                exitQtyInput.value = safeExit; // Atualiza o input de saída, caso o valor digitado fosse maior
                 
                 const newQty = Math.max(0, currentQty + entry - safeExit);
                 newStockPreview.textContent = newQty;
@@ -696,104 +640,40 @@
             entryQtyInput.addEventListener('input', updatePreview);
             exitQtyInput.addEventListener('input', updatePreview);
             
-
+            
+            // INÍCIO DA CORREÇÃO: Lógica para Salvar Edição/Movimentação
             saveEditBtn.addEventListener('click', () => {
                 if (!currentEditingProductId) return;
 
                 const product = products.find(p => p.id === currentEditingProductId);
                 if (!product) return;
                 
-                const entry = parseInt(entryQtyInput.value, 10) || 0;
-                const exit = parseInt(exitQtyInput.value, 10) || 0;
+                const currentQty = product.quantity;
                 const newTotal = parseInt(newStockPreview.textContent, 10);
                 
-                // Checa se a imagem Base64 atual é diferente da original
-                const imageChanged = product.imageBase64 !== currentEditImageBase64;
-                const quantityChanged = entry !== 0 || exit !== 0;
+                const entry = parseInt(entryQtyInput.value, 10) || 0;
+                const exit = parseInt(exitQtyInput.value, 10) || 0;
 
-                // Se não houver alteração de estoque E a foto também não foi alterada, fecha.
-                if (!quantityChanged && !imageChanged) {
+                // Checa se a quantidade REALMENTE mudou (net change)
+                const quantityChanged = currentQty !== newTotal; 
+                
+                // Se a quantidade não mudou E não houve intenção de movimentação (inputs vazios), notifica e sai
+                if (!quantityChanged && (entry === 0 && exit === 0)) {
                     editModal.classList.add('hidden');
                     currentEditingProductId = null;
                     showFeedback('Nenhuma alteração registrada.');
                     return;
                 }
 
-                // 1. Salva a imagem Base64 se ela tiver mudado (DEVE SER FEITO ANTES do updateQuantity, que chama saveProducts)
-                if (imageChanged) {
-                    product.imageBase64 = currentEditImageBase64;
-                }
+                // Se chegou aqui, ou a quantidade mudou (quantidadeChanged = true), 
+                // OU o usuário inseriu entradas/saídas que se anularam (+N, -N).
+                // Em ambos os casos, chamamos updateQuantity, que irá chamar saveProducts().
+                updateQuantity(currentEditingProductId, newTotal);
                 
-                let success = false;
-                // 2. Se houver alteração de estoque, atualiza o total
-                if (quantityChanged) {
-                     // updateQuantity chama saveProducts() e renderProductList().
-                     success = updateQuantity(currentEditingProductId, newTotal);
-                }
-                
-                // 3. Se APENAS a imagem mudou (e o estoque não) ou se houve sucesso na atualização do estoque
-                if (imageChanged && !quantityChanged) {
-                     saveProducts(); // Salva a mudança da foto
-                     renderProductList(productSearchInput.value); 
-                     showFeedback(`Foto do produto "${product.name}" atualizada com sucesso!`);
-                     success = true;
-                }
-                
-                if (success || (imageChanged && !quantityChanged)) {
-                    editModal.classList.add('hidden');
-                    currentEditingProductId = null;
-                }
+                // O modal será fechado pela função updateQuantity se for bem-sucedida.
             });
+            // FIM DA CORREÇÃO
 
-            // --- Lógica de Alteração de Foto no Modal de Edição ---
-
-            // 1. Aciona o campo de arquivo oculto (que agora abre Galeria OU Câmera)
-            changeImageBtn.addEventListener('click', () => {
-                editImageFileInput.click();
-            });
-
-            // 2. Lida com a seleção/captura da nova imagem
-            editImageFileInput.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        // Salva a imagem como Base64
-                        currentEditImageBase64 = e.target.result;
-                        // Atualiza os previews
-                        editProductPhotoPreview.src = currentEditImageBase64;
-                        editProductImg.src = currentEditImageBase64; // Atualiza o preview principal do cabeçalho do modal
-                        
-                        // Limpa o input file para que o evento 'change' dispare novamente se a mesma foto for escolhida
-                        editImageFileInput.value = '';
-                        showFeedback("Nova foto selecionada/capturada. Lembre de Registrar Movimentação para salvar.", false);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-
-            // 3. Remove a imagem
-            removeEditImageBtn.addEventListener('click', () => {
-                currentEditImageBase64 = null;
-                // Define os previews para um placeholder
-                editProductPhotoPreview.src = PLACEHOLDER_IMG_SRC;
-                editProductImg.src = 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
-                showFeedback("Foto removida. Lembre de Registrar Movimentação para salvar a mudança.", false);
-            });
-
-            // --- Lógica do Botão Voltar (Novo) ---
-
-            // O botão de voltar e o botão de cancelar fazem a mesma coisa (fechar o modal)
-            backEditModalBtn.addEventListener('click', () => {
-                editModal.classList.add('hidden');
-                currentEditingProductId = null;
-            });
-            
-            closeEditModalBtn.addEventListener('click', () => {
-                editModal.classList.add('hidden');
-                currentEditingProductId = null;
-            });
-            
 
             // Abrir modal de confirmação para exclusão
             deleteProductBtn.addEventListener('click', () => {
@@ -808,6 +688,11 @@
                 }
             });
 
+
+            closeEditModalBtn.addEventListener('click', () => {
+                editModal.classList.add('hidden');
+                currentEditingProductId = null;
+            });
 
             // Lógica do Modal de Confirmação
             confirmYesBtn.addEventListener('click', () => {
