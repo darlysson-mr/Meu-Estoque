@@ -234,7 +234,6 @@
             <h3 class="text-2xl font-bold mb-4 border-b pb-2 text-primary-pink">Ajustar Estoque</h3>
             
             <div class="flex items-center gap-4 mb-4 border p-3 rounded-lg bg-light-bg">
-                <img id="edit-product-img" src="" alt="Foto do Produto" class="product-image shadow-md w-12 h-12">
                 <div class="flex-grow">
                     <p class="font-semibold text-lg" id="edit-product-name"></p>
                     <p class="text-sm text-gray-500" id="edit-product-details"></p>
@@ -245,6 +244,22 @@
                 </div>
             </div>
             
+            <div class="mb-6 p-3 border rounded-lg">
+                <label class="block text-sm font-bold text-dark-text mb-2 flex items-center gap-1">
+                    <i data-lucide="image" class="w-4 h-4"></i> Alterar Foto do Produto
+                </label>
+                <div class="flex items-center gap-3">
+                    <img id="edit-current-img-preview" src="" alt="Foto do Produto" class="product-image w-16 h-16 shadow-md border border-gray-200 object-cover">
+                    <input type="file" id="edit-image-file-input" accept="image/*" class="hidden">
+                    <button id="edit-change-photo-btn" class="bg-gray-100 hover:bg-gray-200 text-dark-text font-bold py-2 px-3 rounded-lg transition flex-grow flex items-center justify-center gap-1 text-sm">
+                        <i data-lucide="upload" class="w-4 h-4"></i> Mudar
+                    </button>
+                    <button id="edit-remove-photo-btn" class="bg-red-100 hover:bg-red-200 text-red-600 font-bold py-2 px-3 rounded-lg transition flex items-center justify-center gap-1 text-sm">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i> Rem
+                    </button>
+                </div>
+            </div>
+
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="bg-green-50 border-green-300 border p-3 rounded-lg">
                     <label for="entry-qty-input" class="block text-sm font-bold text-green-700 mb-1 flex items-center">
@@ -351,7 +366,6 @@
             const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
             const editProductName = document.getElementById('edit-product-name');
             const editProductDetails = document.getElementById('edit-product-details');
-            const editProductImg = document.getElementById('edit-product-img');
             
             // NOVOS ELEMENTOS DO MODAL DE EDIÇÃO
             const currentStockQty = document.getElementById('current-stock-qty');
@@ -361,6 +375,12 @@
 
             const saveEditBtn = document.getElementById('save-edit-btn');
             const deleteProductBtn = document.getElementById('delete-product-btn'); 
+
+            // Elementos de Edição de Foto (NOVOS)
+            const editCurrentImgPreview = document.getElementById('edit-current-img-preview');
+            const editImageFileInput = document.getElementById('edit-image-file-input');
+            const editChangePhotoBtn = document.getElementById('edit-change-photo-btn');
+            const editRemovePhotoBtn = document.getElementById('edit-remove-photo-btn');
 
             // Elementos do Modal de Confirmação
             const confirmModal = document.getElementById('confirm-modal');
@@ -379,7 +399,8 @@
             let categories = [];
             let lastScannedProductId = null;
             let currentEditingProductId = null;
-            let currentCapturedImageBase64 = null; 
+            let currentCapturedImageBase64 = null; // Foto para o NOVO produto
+            let currentEditImageBase64 = null; // Foto para o produto em EDIÇÃO
             
             let aiModel = null;
             let videoStream = null;
@@ -567,7 +588,7 @@
                     renderProductList(productSearchInput.value); 
                     
                     const change = newQuantity - oldQuantity;
-                    const action = change > 0 ? 'Entrada (Compra)' : (change < 0 ? 'Saída (Uso)' : 'Nenhuma Mudança');
+                    const action = change > 0 ? 'Entrada (Compra)' : (change < 0 ? 'Saída (Uso)' : 'Estoque não alterado');
                     const message = change !== 0 ? `${action} de ${Math.abs(change)} unidades registrada para "${product.name}".` : 'Quantidade não alterada.';
                     
                     showFeedback(message);
@@ -577,7 +598,9 @@
                          editModal.classList.add('hidden');
                          currentEditingProductId = null;
                     }
+                    return true;
                 }
+                return false;
             }
 
             function updateQuantityFromScan(productId, change) {
@@ -595,7 +618,7 @@
                 }
             }
             
-            // --- Lógica do Modal de Edição (Entrada/Saída) ---
+            // --- Lógica do Modal de Edição (Entrada/Saída/Foto) ---
             function openEditModal(productId) {
                 const product = products.find(p => p.id === productId);
                 if (!product) return;
@@ -605,6 +628,15 @@
                 editProductName.textContent = product.name;
                 editProductDetails.textContent = `Cat: ${product.category} | Mín: ${product.minAlertQty}`;
                 
+                // --- LÓGICA DA FOTO DE EDIÇÃO ---
+                // Inicializa a foto de edição com a foto atual do produto
+                currentEditImageBase64 = product.imageBase64 || ''; 
+                
+                const defaultImage = 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
+                editCurrentImgPreview.src = currentEditImageBase64 || defaultImage;
+                editCurrentImgPreview.classList.toggle('bg-gray-100', !currentEditImageBase64);
+                // --- FIM LÓGICA DA FOTO DE EDIÇÃO ---
+
                 // Zera inputs e define o estoque atual
                 entryQtyInput.value = 0;
                 exitQtyInput.value = 0;
@@ -613,9 +645,6 @@
                 // Atualiza a visualização da prévia
                 updatePreview();
                 
-                editProductImg.src = product.imageBase64 || 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
-                editProductImg.classList.toggle('bg-gray-100', !product.imageBase64);
-
                 editModal.classList.remove('hidden');
             }
             
@@ -639,9 +668,35 @@
             // Event Listeners para atualizar a prévia
             entryQtyInput.addEventListener('input', updatePreview);
             exitQtyInput.addEventListener('input', updatePreview);
+
+            // --- Lógica de Alteração de Foto no Modal de Edição ---
+            editChangePhotoBtn.addEventListener('click', () => {
+                editImageFileInput.click();
+            });
+
+            editRemovePhotoBtn.addEventListener('click', () => {
+                currentEditImageBase64 = '';
+                editCurrentImgPreview.src = 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
+                editCurrentImgPreview.classList.add('bg-gray-100');
+                showFeedback('Foto marcada para remoção. Salve para confirmar.');
+            });
+
+            editImageFileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        currentEditImageBase64 = e.target.result;
+                        editCurrentImgPreview.src = currentEditImageBase64;
+                        editCurrentImgPreview.classList.remove('bg-gray-100');
+                        showFeedback('Nova foto anexada. Salve para confirmar.');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
             
             
-            // INÍCIO DA CORREÇÃO: Lógica para Salvar Edição/Movimentação
+            // CORREÇÃO FINAL: Lógica para Salvar Edição/Movimentação (COM VERIFICAÇÃO DE FOTO)
             saveEditBtn.addEventListener('click', () => {
                 if (!currentEditingProductId) return;
 
@@ -654,25 +709,56 @@
                 const entry = parseInt(entryQtyInput.value, 10) || 0;
                 const exit = parseInt(exitQtyInput.value, 10) || 0;
 
-                // Checa se a quantidade REALMENTE mudou (net change)
+                // 1. Checa se a quantidade MUDOU (net change)
                 const quantityChanged = currentQty !== newTotal; 
                 
-                // Se a quantidade não mudou E não houve intenção de movimentação (inputs vazios), notifica e sai
-                if (!quantityChanged && (entry === 0 && exit === 0)) {
+                // 2. Checa se a foto MUDOU (comparando o base64 atual de edição com o original do produto)
+                const imageChanged = product.imageBase64 !== currentEditImageBase64;
+                
+                // Se NÃO houver NENHUMA alteração (nem foto, nem quantidade, nem inputs de movimentação), notifica e sai
+                if (!quantityChanged && !imageChanged && (entry === 0 && exit === 0)) {
                     editModal.classList.add('hidden');
                     currentEditingProductId = null;
                     showFeedback('Nenhuma alteração registrada.');
                     return;
                 }
 
-                // Se chegou aqui, ou a quantidade mudou (quantidadeChanged = true), 
-                // OU o usuário inseriu entradas/saídas que se anularam (+N, -N).
-                // Em ambos os casos, chamamos updateQuantity, que irá chamar saveProducts().
-                updateQuantity(currentEditingProductId, newTotal);
+                // --- Se houver mudança de foto ou quantidade, procede com o salvamento ---
+
+                let success = false;
+                let feedbackMessage = '';
+
+                // A) Atualiza a imagem se ela tiver mudado
+                if (imageChanged) {
+                    product.imageBase64 = currentEditImageBase64;
+                    feedbackMessage += 'Foto atualizada. ';
+                }
                 
-                // O modal será fechado pela função updateQuantity se for bem-sucedida.
+                // B) Atualiza a quantidade se ela tiver mudado OU se houver movimentação de anulação
+                if (quantityChanged) {
+                     // updateQuantity já chama saveProducts(), renderProductList() e dá feedback.
+                     updateQuantity(currentEditingProductId, newTotal); 
+                     success = true;
+                } else if (imageChanged) {
+                    // Se a quantidade não mudou, mas a imagem sim, precisamos salvar e renderizar.
+                    saveProducts();
+                    renderProductList(productSearchInput.value); 
+                    showFeedback(feedbackMessage.trim() + ` Foto de "${product.name}" atualizada.`);
+                    success = true;
+                } else if (entry > 0 || exit > 0) {
+                    // Caso o usuário colocou +N e -N (net change = 0), salva para registrar a intenção e fecha.
+                    // Isso é crucial para que o "Nenhuma alteração registrada" não apareça no caso de inputs anulados.
+                    saveProducts();
+                    renderProductList(productSearchInput.value);
+                    showFeedback(`Movimentação de ${entry} entradas e ${exit} saídas registrada para "${product.name}". (Estoque líquido inalterado)`);
+                    success = true;
+                }
+                
+                if (success) {
+                    editModal.classList.add('hidden');
+                    currentEditingProductId = null;
+                }
             });
-            // FIM DA CORREÇÃO
 
 
             // Abrir modal de confirmação para exclusão
@@ -949,9 +1035,66 @@
                 }
             }
             
-            // Lógica de Categorias (mantida, mas precisa de event listeners para o modal)
-            // ... (Faltam os event listeners para o modal de categorias para ser completo, mas a função base está presente)
+            // Lógica de Categorias (AINDA PRECISA SER IMPLEMENTADA)
+            
+            // Gerenciar Categorias
+            const categoryModal = document.getElementById('category-modal');
+            const manageCategoriesBtn = document.getElementById('manage-categories-btn');
+            const closeCategoryModalBtn = document.getElementById('close-category-modal-btn');
+            const newCategoryInput = document.getElementById('new-category-input');
+            const addCategoryBtn = document.getElementById('add-category-btn');
+            const categoriesList = document.getElementById('categories-list');
 
+            function renderCategoriesList() {
+                categoriesList.innerHTML = '';
+                categories.forEach(cat => {
+                    const item = document.createElement('div');
+                    item.className = 'flex justify-between items-center p-2 bg-gray-50 rounded';
+                    item.innerHTML = `
+                        <span>${cat}</span>
+                        <button data-category="${cat}" class="remove-category-btn text-red-500 hover:text-red-700 p-1 rounded transition" title="Remover">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    `;
+                    categoriesList.appendChild(item);
+                });
+                lucide.createIcons();
+            }
+
+            manageCategoriesBtn.addEventListener('click', () => {
+                renderCategoriesList();
+                categoryModal.classList.remove('hidden');
+            });
+
+            closeCategoryModalBtn.addEventListener('click', () => {
+                categoryModal.classList.add('hidden');
+            });
+
+            addCategoryBtn.addEventListener('click', () => {
+                const newCat = newCategoryInput.value.trim();
+                if (newCat && !categories.includes(newCat)) {
+                    categories.push(newCat);
+                    saveCategories();
+                    renderCategoriesList();
+                    newCategoryInput.value = '';
+                }
+            });
+
+            categoriesList.addEventListener('click', (e) => {
+                const removeButton = e.target.closest('.remove-category-btn');
+                if (removeButton) {
+                    const catToRemove = removeButton.dataset.category;
+                    if (categories.length > 1) { // Garante que pelo menos uma categoria permaneça
+                        categories = categories.filter(c => c !== catToRemove);
+                        saveCategories();
+                        renderCategoriesList();
+                        // Força a re-renderização da lista de produtos caso a categoria tenha sido usada
+                        renderProductList(productSearchInput.value); 
+                    } else {
+                         showFeedback('É necessário ter pelo menos uma categoria.', true);
+                    }
+                }
+            });
 
             loadData(); // Carrega dados ao iniciar
         });
