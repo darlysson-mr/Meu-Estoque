@@ -44,9 +44,10 @@
             background-color: white !important;
             color: #262626 !important;
         }
+        /* CORREÇÃO APLICADA AQUI: Redução do tamanho da imagem de 48px para 40px (w-10/h-10) */
         .product-image {
-            width: 48px; 
-            height: 48px; 
+            width: 40px; 
+            height: 40px; 
             object-fit: cover;
             border-radius: 6px;
         }
@@ -513,29 +514,31 @@
                     const borderClass = isLowStock ? 'border-red-400 ring-1 ring-red-400' : 'border-gray-200';
                     
                     const productElement = document.createElement('div');
-                    productElement.className = `fade-in bg-gray-50 p-3 rounded-xl flex justify-between items-center shadow-md border ${borderClass}`;
+                    // CORREÇÃO 1: Redução do padding do item de lista de p-3 para p-2 para compactar
+                    productElement.className = `fade-in bg-gray-50 p-2 rounded-xl flex justify-between items-center shadow-md border ${borderClass}`;
                     
                     // Imagem (se existir) ou um ícone placeholder
+                    // A classe product-image está agora definida para w-10 h-10 (40px) no CSS
                     const imageHtml = product.imageBase64 
                         ? `<img src="${product.imageBase64}" alt="Foto do produto" class="product-image shadow-sm">`
-                        : `<i data-lucide="${isLowStock ? 'box-alert' : 'package'}" class="w-10 h-10 ${isLowStock ? 'text-red-500' : 'text-primary-pink'} shrink-0 p-2 bg-white rounded-lg"></i>`;
+                        // Redução do ícone placeholder para w-8 h-8 (32px) com p-1 para ter o mesmo tamanho da imagem (40px)
+                        : `<i data-lucide="${isLowStock ? 'box-alert' : 'package'}" class="w-8 h-8 ${isLowStock ? 'text-red-500' : 'text-primary-pink'} shrink-0 p-1 bg-white rounded-lg"></i>`;
 
 
                     productElement.innerHTML = `
-                        <div class="flex items-center gap-3 flex-grow min-w-0">
+                        <div class="flex items-center gap-2 flex-grow min-w-0"> 
                             ${imageHtml}
-                            <div class="flex-grow min-w-0"> // <-- CORREÇÃO APLICADA AQUI
-                                <p class="font-semibold text-dark-text truncate">${product.name}</p>
+                            <div class="flex-grow min-w-0"> <p class="font-semibold text-dark-text truncate">${product.name}</p>
                                 <p class="text-xs text-gray-500">Cat: ${product.category}</p>
                             </div>
                         </div>
-                        <div class="text-right ml-4 shrink-0">
+                        <div class="text-right ml-3 shrink-0">
                             <span class="text-xs font-medium text-gray-700">Qtd Atual: </span>
-                            <span class="text-xl ${stockClass}">${product.quantity}</span>
+                            <span class="text-lg ${stockClass}">${product.quantity}</span>
                             <p class="text-xs text-gray-500">Mín: ${product.minAlertQty}</p>
                         </div>
-                        <button data-id="${product.id}" class="edit-btn bg-primary-pink/10 hover:bg-primary-pink/20 text-primary-pink p-2 rounded-lg transition ml-4 shrink-0" title="Editar Quantidade">
-                            <i data-lucide="edit" class="w-5 h-5"></i>
+                        <button data-id="${product.id}" class="edit-btn bg-primary-pink/10 hover:bg-primary-pink/20 text-primary-pink p-1 rounded-lg transition ml-3 shrink-0" title="Editar Quantidade">
+                            <i data-lucide="edit" class="w-4 h-4"></i>
                         </button>
                     `;
                     productListDiv.appendChild(productElement);
