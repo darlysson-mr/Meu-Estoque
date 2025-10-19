@@ -34,7 +34,7 @@
         /* Estilos do Scanner QR */
         #qr-reader { width: 100%; max-width: 400px; border-radius: 8px; overflow: hidden; border: 2px solid #e91e63; }
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         /* Estilos para o modal e inputs */
         #ai-modal, #category-modal, #edit-modal, #confirm-modal { background-color: rgba(0, 0, 0, 0.8); }
         #video-container { position: relative; }
@@ -44,12 +44,19 @@
             background-color: white !important;
             color: #262626 !important;
         }
-        /* CORREÇÃO APLICADA AQUI: Redução do tamanho da imagem de 48px para 40px (w-10/h-10) */
+        /* CORREÇÃO APLICADA: Tamanho da imagem no formulário de cadastro e modal de edição */
         .product-image {
-            width: 40px; 
-            height: 40px; 
+            width: 48px; /* Mantido em 48px para o preview de cadastro e modal de edição (w-12 h-12 no HTML) */
+            height: 48px; 
             object-fit: cover;
             border-radius: 6px;
+        }
+        /* NOVO: Estilo para a imagem no item da lista (compacto) - Força 40px */
+        .list-item-image {
+             width: 40px; 
+             height: 40px; 
+             object-fit: cover;
+             border-radius: 6px;
         }
     </style>
 </head>
@@ -514,30 +521,31 @@
                     const borderClass = isLowStock ? 'border-red-400 ring-1 ring-red-400' : 'border-gray-200';
                     
                     const productElement = document.createElement('div');
-                    // CORREÇÃO 1: Redução do padding do item de lista de p-3 para p-2 para compactar
+                    
+                    // CORREÇÃO 1: Redução do padding de p-3 para p-2 para compactar o item.
                     productElement.className = `fade-in bg-gray-50 p-2 rounded-xl flex justify-between items-center shadow-md border ${borderClass}`;
                     
                     // Imagem (se existir) ou um ícone placeholder
-                    // A classe product-image está agora definida para w-10 h-10 (40px) no CSS
+                    // CORREÇÃO 2: Redução da imagem/ícone para w-10 h-10 (40px) e uso de classe .list-item-image no CSS
                     const imageHtml = product.imageBase64 
-                        ? `<img src="${product.imageBase64}" alt="Foto do produto" class="product-image shadow-sm">`
-                        // Redução do ícone placeholder para w-8 h-8 (32px) com p-1 para ter o mesmo tamanho da imagem (40px)
-                        : `<i data-lucide="${isLowStock ? 'box-alert' : 'package'}" class="w-8 h-8 ${isLowStock ? 'text-red-500' : 'text-primary-pink'} shrink-0 p-1 bg-white rounded-lg"></i>`;
+                        ? `<img src="${product.imageBase64}" alt="Foto do produto" class="list-item-image shadow-sm">`
+                        : `<i data-lucide="${isLowStock ? 'box-alert' : 'package'}" class="w-10 h-10 ${isLowStock ? 'text-red-500' : 'text-primary-pink'} shrink-0 p-2 bg-white rounded-lg"></i>`;
 
 
                     productElement.innerHTML = `
                         <div class="flex items-center gap-2 flex-grow min-w-0"> 
                             ${imageHtml}
-                            <div class="flex-grow min-w-0"> <p class="font-semibold text-dark-text truncate">${product.name}</p>
-                                <p class="text-xs text-gray-500">Cat: ${product.category}</p>
+                            <div class="flex-grow min-w-0">
+                                <p class="font-semibold text-dark-text leading-tight">${product.name}</p> 
+                                <p class="text-xs text-gray-500 leading-tight">Cat: ${product.category}</p>
                             </div>
                         </div>
-                        <div class="text-right ml-3 shrink-0">
+                        <div class="text-right ml-2 shrink-0 flex flex-col items-end">
                             <span class="text-xs font-medium text-gray-700">Qtd Atual: </span>
-                            <span class="text-lg ${stockClass}">${product.quantity}</span>
-                            <p class="text-xs text-gray-500">Mín: ${product.minAlertQty}</p>
+                            <span class="text-lg ${stockClass} leading-none">${product.quantity}</span>
+                            <p class="text-xs text-gray-500 leading-tight">Mín: ${product.minAlertQty}</p>
                         </div>
-                        <button data-id="${product.id}" class="edit-btn bg-primary-pink/10 hover:bg-primary-pink/20 text-primary-pink p-1 rounded-lg transition ml-3 shrink-0" title="Editar Quantidade">
+                        <button data-id="${product.id}" class="edit-btn bg-primary-pink/10 hover:bg-primary-pink/20 text-primary-pink p-1 rounded-lg transition ml-2 shrink-0" title="Editar Quantidade">
                             <i data-lucide="edit" class="w-4 h-4"></i>
                         </button>
                     `;
