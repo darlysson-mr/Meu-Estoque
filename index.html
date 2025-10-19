@@ -34,7 +34,7 @@
         /* Estilos do Scanner QR */
         #qr-reader { width: 100%; max-width: 400px; border-radius: 8px; overflow: hidden; border: 2px solid #e91e63; }
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         /* Estilos para o modal e inputs */
         #ai-modal, #category-modal, #edit-modal, #confirm-modal { background-color: rgba(0, 0, 0, 0.8); }
         #video-container { position: relative; }
@@ -524,7 +524,7 @@
                     productElement.innerHTML = `
                         <div class="flex items-center gap-3 flex-grow min-w-0">
                             ${imageHtml}
-                            <div>
+                            <div class="flex-grow min-w-0"> // <-- CORREÇÃO APLICADA AQUI
                                 <p class="font-semibold text-dark-text truncate">${product.name}</p>
                                 <p class="text-xs text-gray-500">Cat: ${product.category}</p>
                             </div>
