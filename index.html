@@ -225,12 +225,7 @@
                 <div id="ai-buttons-container" class="flex flex-wrap justify-center gap-2 mt-2"></div>
             </div>
             
-            <div class="flex gap-4 justify-center mt-6">
-                <button id="gallery-select-btn-in-modal" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition shadow-md flex items-center gap-1 flex-grow">
-                    <i data-lucide="image" class="w-5 h-5"></i> Selecionar da Galeria
-                </button>
-                <button id="ai-cancel-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition shadow-md flex-grow">Sair e Cancelar</button>
-            </div>
+            <button id="ai-cancel-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition shadow-md w-full">Sair e Cancelar</button>
         </div>
     </div>
     
@@ -250,6 +245,22 @@
                 </div>
             </div>
             
+            <div class="mb-4 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                <label class="block text-sm font-bold text-dark-text mb-2 flex items-center gap-1">
+                    <i data-lucide="image" class="w-4 h-4"></i> ALTERAR FOTO
+                </label>
+                <div class="flex items-center gap-3">
+                    <img id="edit-product-photo-preview" src="" alt="Nova Foto" class="product-image shadow-md w-16 h-16">
+                    <div class="flex flex-col gap-1">
+                        <button type="button" id="change-image-btn" class="bg-primary-pink text-white text-sm px-3 py-2 rounded-lg hover:bg-pink-700 transition font-medium flex items-center gap-1">
+                            <i data-lucide="camera" class="w-4 h-4"></i> Mudar / Anexar
+                        </button>
+                        <button type="button" id="remove-edit-image-btn" class="text-xs text-red-500 hover:text-red-700 transition underline">
+                            Remover Foto
+                        </button>
+                    </div>
+                </div>
+            </div>
             <div class="grid grid-cols-2 gap-4 mb-6">
                 <div class="bg-green-50 border-green-300 border p-3 rounded-lg">
                     <label for="entry-qty-input" class="block text-sm font-bold text-green-700 mb-1 flex items-center">
@@ -309,8 +320,8 @@
             <button id="close-category-modal-btn" class="mt-6 w-full bg-gray-200 hover:bg-gray-300 text-dark-text font-bold py-2 rounded-lg transition">Fechar</button>
         </div>
     </div>
-
-    <input type="file" id="gallery-upload" accept="image/*" class="hidden"> 
+    
+    <input type="file" id="edit-image-file-input" accept="image/*" style="display: none;">
 
     <footer class="text-center p-4 text-gray-500 text-sm mt-4 bg-white shadow-inner">
         <p>Criado com IA (TensorFlow.js), Tailwind CSS e html5-qrcode.</p>
@@ -352,11 +363,6 @@
             const imagePreview = document.getElementById('image-preview');
             const imagePreviewContainer = document.getElementById('image-preview-container');
             const removeImageBtn = document.getElementById('remove-image-btn');
-            
-            // NOVOS ELEMENTOS DE GALERIA
-            const galleryUploadInput = document.getElementById('gallery-upload'); 
-            const gallerySelectBtnInModal = document.getElementById('gallery-select-btn-in-modal');
-
 
             // Elementos de Edição (Entrada/Saída/Deleção)
             const editModal = document.getElementById('edit-modal');
@@ -373,6 +379,14 @@
 
             const saveEditBtn = document.getElementById('save-edit-btn');
             const deleteProductBtn = document.getElementById('delete-product-btn'); 
+
+            // NOVO: Elementos de Edição de Foto
+            const editImageFileInput = document.getElementById('edit-image-file-input');
+            const changeImageBtn = document.getElementById('change-image-btn');
+            const removeEditImageBtn = document.getElementById('remove-edit-image-btn');
+            const editProductPhotoPreview = document.getElementById('edit-product-photo-preview');
+            // Placeholder transparente para o preview no modal de edição.
+            const PLACEHOLDER_IMG_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; 
 
             // Elementos do Modal de Confirmação
             const confirmModal = document.getElementById('confirm-modal');
@@ -392,6 +406,7 @@
             let lastScannedProductId = null;
             let currentEditingProductId = null;
             let currentCapturedImageBase64 = null; 
+            let currentEditImageBase64 = null; // Base64 da imagem no modal de edição
             
             let aiModel = null;
             let videoStream = null;
@@ -575,8 +590,7 @@
                     newQuantity = Math.max(0, parseInt(newQuantity, 10)); 
                     
                     product.quantity = newQuantity;
-                    saveProducts();
-                    renderProductList(productSearchInput.value); 
+                    // Note: saveProducts is called later in saveEditBtn logic if quantity changes.
                     
                     const change = newQuantity - oldQuantity;
                     const action = change > 0 ? 'Entrada (Compra)' : (change < 0 ? 'Saída (Uso)' : 'Nenhuma Mudança');
@@ -607,7 +621,7 @@
                 }
             }
             
-            // --- Lógica do Modal de Edição (Entrada/Saída) ---
+            // --- Lógica do Modal de Edição (Entrada/Saída/Foto) ---
             function openEditModal(productId) {
                 const product = products.find(p => p.id === productId);
                 if (!product) return;
@@ -625,10 +639,20 @@
                 // Atualiza a visualização da prévia
                 updatePreview();
                 
-                editProductImg.src = product.imageBase64 || 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
-                editProductImg.classList.toggle('bg-gray-100', !product.imageBase64);
+                // NOVO: Carregar a imagem existente para a prévia e a variável de controle
+                currentEditImageBase64 = product.imageBase64 || null;
 
+                // Define as prévias da foto
+                const imgSource = currentEditImageBase64 
+                    ? currentEditImageBase64 
+                    : 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
+                
+                editProductImg.src = imgSource;
+                editProductPhotoPreview.src = currentEditImageBase64 || PLACEHOLDER_IMG_SRC; 
+                editProductImg.classList.toggle('bg-gray-100', !product.imageBase64);
+                
                 editModal.classList.remove('hidden');
+                lucide.createIcons(); // Garante que os novos ícones do modal são criados
             }
             
             // Função para calcular a prévia do estoque
@@ -663,17 +687,75 @@
                 const exit = parseInt(exitQtyInput.value, 10) || 0;
                 const newTotal = parseInt(newStockPreview.textContent, 10);
                 
-                // Se não houver alteração, fecha sem salvar
-                if (entry === 0 && exit === 0) {
+                // Verifica se a imagem Base64 atual é diferente da original
+                const imageChanged = product.imageBase64 !== currentEditImageBase64;
+                
+                // Se não houver alteração de estoque E a foto também não foi alterada, fecha.
+                if (entry === 0 && exit === 0 && !imageChanged) {
                     editModal.classList.add('hidden');
                     currentEditingProductId = null;
                     showFeedback('Nenhuma alteração registrada.');
                     return;
                 }
 
-                // A função updateQuantity já trata a diferença e a mensagem
-                updateQuantity(currentEditingProductId, newTotal);
+                // 1. Salva a imagem Base64 se ela tiver mudado
+                if (imageChanged) {
+                    product.imageBase64 = currentEditImageBase64;
+                }
+                
+                // 2. Se houver alteração de estoque, atualiza o total
+                if (entry !== 0 || exit !== 0) {
+                     // A função updateQuantity já trata a diferença e a mensagem
+                     updateQuantity(currentEditingProductId, newTotal);
+                }
+                
+                // Garante que os dados são salvos se APENAS a foto mudou
+                if (imageChanged) {
+                     saveProducts();
+                     renderProductList(productSearchInput.value); 
+                     showFeedback(`Foto do produto "${product.name}" atualizada com sucesso!`);
+                     editModal.classList.add('hidden');
+                     currentEditingProductId = null;
+                }
             });
+
+            // --- Lógica de Alteração de Foto no Modal de Edição (CORRIGIDA) ---
+
+            // 1. Aciona o campo de arquivo oculto (que agora abre Galeria OU Câmera)
+            changeImageBtn.addEventListener('click', () => {
+                editImageFileInput.click();
+            });
+
+            // 2. Lida com a seleção/captura da nova imagem
+            editImageFileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        // Salva a imagem como Base64
+                        currentEditImageBase64 = e.target.result;
+                        // Atualiza os previews
+                        editProductPhotoPreview.src = currentEditImageBase64;
+                        editProductImg.src = currentEditImageBase64; // Atualiza o preview principal do cabeçalho do modal
+                        
+                        // Limpa o input file para que o evento 'change' dispare novamente se a mesma foto for escolhida
+                        editImageFileInput.value = '';
+                        showFeedback("Nova foto selecionada/capturada. Lembre de Registrar Movimentação para salvar.", false);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // 3. Remove a imagem
+            removeEditImageBtn.addEventListener('click', () => {
+                currentEditImageBase64 = null;
+                // Define os previews para um placeholder
+                editProductPhotoPreview.src = PLACEHOLDER_IMG_SRC;
+                editProductImg.src = 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
+                showFeedback("Foto removida. Lembre de Registrar Movimentação para salvar a mudança.", false);
+            });
+
+            // --- Fim Lógica de Alteração de Foto ---
 
 
             // Abrir modal de confirmação para exclusão
@@ -717,7 +799,7 @@
             }
 
 
-            // --- LÓGICA DA IA/FOTO ---
+            // --- LÓGICA DA IA/FOTO (mantida) ---
 
             async function loadAIModel() {
                 aiStatus.textContent = 'Carregando modelo de IA...';
@@ -811,38 +893,6 @@
                 imagePreviewContainer.classList.add('hidden');
                 showFeedback('Foto removida.');
             });
-
-
-            // --- NOVA LÓGICA DE UPLOAD POR GALERIA ---
-            
-            function handleImageUpload(file) {
-                if (file && file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        currentCapturedImageBase64 = e.target.result;
-                        imagePreview.src = currentCapturedImageBase64;
-                        imagePreviewContainer.classList.remove('hidden');
-                        stopAIDetection(); // Fecha o modal após o upload
-                        showFeedback('Foto da galeria anexada ao produto!');
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    showFeedback('Por favor, selecione um arquivo de imagem válido.', true);
-                }
-            }
-
-            // Event listener para o novo botão 'Selecionar da Galeria' no modal
-            gallerySelectBtnInModal.addEventListener('click', () => {
-                galleryUploadInput.click(); // Aciona o input de arquivo oculto
-            });
-
-            // Event listener para o input de arquivo (quando a foto é selecionada)
-            galleryUploadInput.addEventListener('change', (e) => {
-                handleImageUpload(e.target.files[0]);
-                e.target.value = ''; // Limpa o input
-            });
-            
-            // --- FIM DA NOVA LÓGICA DE UPLOAD POR GALERIA ---
 
 
             // --- Event Listeners ---
