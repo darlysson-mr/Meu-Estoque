@@ -802,7 +802,7 @@
             }
 
 
-            // --- LÓGICA DA IA/FOTO (mantida) ---
+            // --- LÓGICA DA IA/FOTO ---
 
             async function loadAIModel() {
                 aiStatus.textContent = 'Carregando modelo de IA...';
@@ -822,6 +822,7 @@
 
                 aiStatus.textContent = 'Aguardando câmera...';
                 try {
+                    // Adiciona um timeout para garantir que o vídeo comece a rodar antes de tentar carregar
                     videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                     aiVideo.srcObject = videoStream;
                     
@@ -876,18 +877,29 @@
                 }
             }
 
-
+            // CORREÇÃO DO ERRO DE REGISTRO DE FOTO (Mais verificação de estado)
             capturePhotoBtn.addEventListener('click', () => {
-                if (!aiVideo.srcObject) return;
+                // 1. Verifica se a câmera está realmente pronta com dimensões válidas
+                if (!aiVideo.srcObject || aiVideo.videoWidth === 0 || aiVideo.videoHeight === 0) {
+                    showFeedback('Erro ao capturar: Câmera não está pronta. Tente novamente.', true);
+                    return;
+                }
+                
                 const ctx = aiCanvas.getContext('2d');
                 aiCanvas.width = aiVideo.videoWidth;
                 aiCanvas.height = aiVideo.videoHeight;
-                ctx.drawImage(aiVideo, 0, 0, aiCanvas.width, aiCanvas.height);
-                currentCapturedImageBase64 = aiCanvas.toDataURL('image/jpeg', 0.8);
-                imagePreview.src = currentCapturedImageBase64;
-                imagePreviewContainer.classList.remove('hidden');
-                stopAIDetection();
-                showFeedback('Foto capturada e anexada ao produto!');
+                
+                try {
+                    ctx.drawImage(aiVideo, 0, 0, aiCanvas.width, aiCanvas.height);
+                    currentCapturedImageBase64 = aiCanvas.toDataURL('image/jpeg', 0.8);
+                    imagePreview.src = currentCapturedImageBase64;
+                    imagePreviewContainer.classList.remove('hidden');
+                    stopAIDetection();
+                    showFeedback('Foto capturada e anexada ao produto!');
+                } catch (error) {
+                     console.error("Erro ao desenhar ou converter a imagem:", error);
+                     showFeedback('Erro fatal ao processar a foto. Verifique o console do navegador.', true);
+                }
             });
             
             removeImageBtn.addEventListener('click', () => {
@@ -1035,7 +1047,7 @@
                 }
             }
             
-            // Lógica de Categorias (AINDA PRECISA SER IMPLEMENTADA)
+            // Lógica de Categorias 
             
             // Gerenciar Categorias
             const categoryModal = document.getElementById('category-modal');
@@ -1095,7 +1107,24 @@
                     }
                 }
             });
+            
+            // NOVO: Adiciona um listener para fechar o modal ao clicar no fundo (melhora o 'botão voltar')
+            function setupModalCloseListeners() {
+                [aiModal, editModal, categoryModal, confirmModal].forEach(modal => {
+                    modal.addEventListener('click', (e) => {
+                        // Fecha apenas se o clique for no próprio fundo do modal
+                        if (e.target === modal) {
+                            modal.classList.add('hidden');
+                            // Lógica específica de cleanup
+                            if (modal === aiModal) stopAIDetection();
+                            if (modal === editModal) currentEditingProductId = null;
+                            if (modal === confirmModal) pendingConfirmationAction = null;
+                        }
+                    });
+                });
+            }
 
+            setupModalCloseListeners();
             loadData(); // Carrega dados ao iniciar
         });
     </script>
