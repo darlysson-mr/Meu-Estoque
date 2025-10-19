@@ -705,7 +705,7 @@
             }
 
 
-            // --- LÓGICA DA IA/FOTO (mantida) ---
+            // --- LÓGICA DA IA/FOTO ---
 
             async function loadAIModel() {
                 aiStatus.textContent = 'Carregando modelo de IA...';
@@ -779,7 +779,6 @@
                 }
             }
 
-
             // CÓDIGO CORRIGIDO: Redimensiona a imagem para evitar estouro do localStorage
             capturePhotoBtn.addEventListener('click', () => {
                 if (!aiVideo.srcObject) return;
@@ -787,7 +786,7 @@
                 const videoWidth = aiVideo.videoWidth;
                 const videoHeight = aiVideo.videoHeight;
 
-                // --- LÓGICA DE REDIMENSIONAMENTO (CORREÇÃO) ---
+                // --- LÓGICA DE REDIMENSIONAMENTO (O QUE CORRIGE SEU ERRO) ---
                 const MAX_SIZE = 200; // Define o tamanho máximo (200x200 pixels)
                 // Calcula o fator de escala para garantir que a maior dimensão seja MAX_SIZE
                 const ratio = Math.min(MAX_SIZE / videoWidth, MAX_SIZE / videoHeight);
@@ -961,8 +960,8 @@
                 }
             }
             
-            // Lógica de Categorias (mantida, mas precisa de event listeners para o modal)
-            // ... (Faltam os event listeners para o modal de categorias para ser completo, mas a função base está presente)
+            // Lógica de Categorias (ainda incompleta, mas a base está aqui)
+            // ...
 
 
             loadData(); // Carrega dados ao iniciar
