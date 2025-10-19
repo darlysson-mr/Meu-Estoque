@@ -231,7 +231,13 @@
     
     <div id="edit-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm text-dark-text">
-            <h3 class="text-2xl font-bold mb-4 border-b pb-2 text-primary-pink">Ajustar Estoque</h3>
+            
+            <div class="flex items-center mb-4 border-b pb-2">
+                <button id="back-edit-modal-btn" title="Voltar" class="p-1 text-dark-text hover:text-primary-pink transition">
+                    <i data-lucide="arrow-left" class="w-6 h-6"></i>
+                </button>
+                <h3 class="text-2xl font-bold ml-3 text-primary-pink flex-grow">Ajustar Estoque</h3>
+            </div>
             
             <div class="flex items-center gap-4 mb-4 border p-3 rounded-lg bg-light-bg">
                 <img id="edit-product-img" src="" alt="Foto do Produto" class="product-image shadow-md w-12 h-12">
@@ -379,6 +385,7 @@
 
             const saveEditBtn = document.getElementById('save-edit-btn');
             const deleteProductBtn = document.getElementById('delete-product-btn'); 
+            const backEditModalBtn = document.getElementById('back-edit-modal-btn'); // NOVO BOTÃO DE VOLTAR
 
             // NOVO: Elementos de Edição de Foto
             const editImageFileInput = document.getElementById('edit-image-file-input');
@@ -387,6 +394,7 @@
             const editProductPhotoPreview = document.getElementById('edit-product-photo-preview');
             // Placeholder transparente para o preview no modal de edição.
             const PLACEHOLDER_IMG_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; 
+
 
             // Elementos do Modal de Confirmação
             const confirmModal = document.getElementById('confirm-modal');
@@ -590,20 +598,21 @@
                     newQuantity = Math.max(0, parseInt(newQuantity, 10)); 
                     
                     product.quantity = newQuantity;
-                    // Note: saveProducts is called later in saveEditBtn logic if quantity changes.
+                    // saveProducts() e renderProductList() são chamados dentro de saveEditBtn.click 
+                    // se houver alteração de estoque (que é onde updateQuantity é chamado).
+                    // Para garantir que a lista seja atualizada no meio do processo, vamos chamá-los aqui,
+                    // mas o modal será fechado na função saveEditBtn.click.
+                    saveProducts(); 
+                    renderProductList(productSearchInput.value); 
                     
                     const change = newQuantity - oldQuantity;
                     const action = change > 0 ? 'Entrada (Compra)' : (change < 0 ? 'Saída (Uso)' : 'Nenhuma Mudança');
                     const message = change !== 0 ? `${action} de ${Math.abs(change)} unidades registrada para "${product.name}".` : 'Quantidade não alterada.';
                     
                     showFeedback(message);
-
-                    // Se estiver no modal de edição, atualiza a lista e fecha
-                    if (currentEditingProductId) {
-                         editModal.classList.add('hidden');
-                         currentEditingProductId = null;
-                    }
+                    return true; // Sucesso
                 }
+                return false;
             }
 
             function updateQuantityFromScan(productId, change) {
@@ -636,9 +645,6 @@
                 exitQtyInput.value = 0;
                 currentStockQty.textContent = product.quantity;
                 
-                // Atualiza a visualização da prévia
-                updatePreview();
-                
                 // NOVO: Carregar a imagem existente para a prévia e a variável de controle
                 currentEditImageBase64 = product.imageBase64 || null;
 
@@ -651,6 +657,9 @@
                 editProductPhotoPreview.src = currentEditImageBase64 || PLACEHOLDER_IMG_SRC; 
                 editProductImg.classList.toggle('bg-gray-100', !product.imageBase64);
                 
+                // Atualiza a visualização da prévia
+                updatePreview();
+
                 editModal.classList.remove('hidden');
                 lucide.createIcons(); // Garante que os novos ícones do modal são criados
             }
@@ -666,7 +675,7 @@
                 
                 // Garante que a Saída não exceda o estoque disponível + entradas
                 const safeExit = Math.min(currentQty + entry, exit);
-                exitQtyInput.value = safeExit; // Atualiza o input de saída, caso o valor digitado fosse maior
+                // exitQtyInput.value = safeExit; // Não forçar a atualização do input, apenas do cálculo
                 
                 const newQty = Math.max(0, currentQty + entry - safeExit);
                 newStockPreview.textContent = newQty;
@@ -687,39 +696,45 @@
                 const exit = parseInt(exitQtyInput.value, 10) || 0;
                 const newTotal = parseInt(newStockPreview.textContent, 10);
                 
-                // Verifica se a imagem Base64 atual é diferente da original
+                // Checa se a imagem Base64 atual é diferente da original
                 const imageChanged = product.imageBase64 !== currentEditImageBase64;
-                
+                const quantityChanged = entry !== 0 || exit !== 0;
+
                 // Se não houver alteração de estoque E a foto também não foi alterada, fecha.
-                if (entry === 0 && exit === 0 && !imageChanged) {
+                if (!quantityChanged && !imageChanged) {
                     editModal.classList.add('hidden');
                     currentEditingProductId = null;
                     showFeedback('Nenhuma alteração registrada.');
                     return;
                 }
 
-                // 1. Salva a imagem Base64 se ela tiver mudado
+                // 1. Salva a imagem Base64 se ela tiver mudado (DEVE SER FEITO ANTES do updateQuantity, que chama saveProducts)
                 if (imageChanged) {
                     product.imageBase64 = currentEditImageBase64;
                 }
                 
+                let success = false;
                 // 2. Se houver alteração de estoque, atualiza o total
-                if (entry !== 0 || exit !== 0) {
-                     // A função updateQuantity já trata a diferença e a mensagem
-                     updateQuantity(currentEditingProductId, newTotal);
+                if (quantityChanged) {
+                     // updateQuantity chama saveProducts() e renderProductList().
+                     success = updateQuantity(currentEditingProductId, newTotal);
                 }
                 
-                // Garante que os dados são salvos se APENAS a foto mudou
-                if (imageChanged) {
-                     saveProducts();
+                // 3. Se APENAS a imagem mudou (e o estoque não) ou se houve sucesso na atualização do estoque
+                if (imageChanged && !quantityChanged) {
+                     saveProducts(); // Salva a mudança da foto
                      renderProductList(productSearchInput.value); 
                      showFeedback(`Foto do produto "${product.name}" atualizada com sucesso!`);
-                     editModal.classList.add('hidden');
-                     currentEditingProductId = null;
+                     success = true;
+                }
+                
+                if (success || (imageChanged && !quantityChanged)) {
+                    editModal.classList.add('hidden');
+                    currentEditingProductId = null;
                 }
             });
 
-            // --- Lógica de Alteração de Foto no Modal de Edição (CORRIGIDA) ---
+            // --- Lógica de Alteração de Foto no Modal de Edição ---
 
             // 1. Aciona o campo de arquivo oculto (que agora abre Galeria OU Câmera)
             changeImageBtn.addEventListener('click', () => {
@@ -755,8 +770,19 @@
                 showFeedback("Foto removida. Lembre de Registrar Movimentação para salvar a mudança.", false);
             });
 
-            // --- Fim Lógica de Alteração de Foto ---
+            // --- Lógica do Botão Voltar (Novo) ---
 
+            // O botão de voltar e o botão de cancelar fazem a mesma coisa (fechar o modal)
+            backEditModalBtn.addEventListener('click', () => {
+                editModal.classList.add('hidden');
+                currentEditingProductId = null;
+            });
+            
+            closeEditModalBtn.addEventListener('click', () => {
+                editModal.classList.add('hidden');
+                currentEditingProductId = null;
+            });
+            
 
             // Abrir modal de confirmação para exclusão
             deleteProductBtn.addEventListener('click', () => {
@@ -771,11 +797,6 @@
                 }
             });
 
-
-            closeEditModalBtn.addEventListener('click', () => {
-                editModal.classList.add('hidden');
-                currentEditingProductId = null;
-            });
 
             // Lógica do Modal de Confirmação
             confirmYesBtn.addEventListener('click', () => {
