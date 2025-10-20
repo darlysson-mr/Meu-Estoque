@@ -325,6 +325,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // ESSENCIAL: Cria os ícones do Lucide
             lucide.createIcons();
 
             // Elementos de Cadastro
@@ -633,12 +634,14 @@
                 const hasPhoto = !!product.imageBase64;
                 editProductImg.src = product.imageBase64 || 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
                 editProductImg.classList.toggle('bg-gray-100', !hasPhoto);
+                // O botão de remover foto só aparece se houver uma foto
                 removePhotoEditBtn.classList.toggle('hidden', !hasPhoto);
                 
                 // Atualiza a visualização da prévia
                 updatePreview();
 
                 editModal.classList.remove('hidden');
+                lucide.createIcons(); // Garante que os ícones (como a seta de voltar) sejam renderizados.
             }
             
             // Função para calcular a prévia do estoque
@@ -691,6 +694,8 @@
             // 1. Abre o modal de foto para editar
             changePhotoEditBtn.addEventListener('click', () => {
                 if (currentEditingProductId) {
+                    // Fechamos o modal de edição antes de abrir o de foto, para evitar sobreposição
+                    editModal.classList.add('hidden'); 
                     startAIDetection(); // Abre o modal de foto
                     showFeedback('Preparando para capturar nova foto para o produto em edição.');
                 }
