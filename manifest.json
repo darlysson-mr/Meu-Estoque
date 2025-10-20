@@ -1,22 +1,22 @@
 {
-"name": "Controle de Estoque Pessoal",
-"short_name": "StockApp",
-"description": "App para gerenciamento de estoque com scanner de QR Code e IA.",
-"start_url": "./index.html",
-"display": "standalone",
-"orientation": "portrait",
-"theme_color": "#e91e63",
-"background_color": "#f5f5f5",
-"icons": [
-{
-"src": "favicon.png",
-"sizes": "192x192",
-"type": "image/png"
-},
-{
-"src": "favicon.png",
-"sizes": "512x512",
-"type": "image/png"
-}
-]
+    "name": "Estoque Pessoal - Stock Control",
+    "short_name": "Stock",
+    "description": "Controle de estoque pessoal com scanner de QR Code e IA.",
+    "start_url": "index.html",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#ffffff",
+    "theme_color": "#e91e63",
+    "icons": [
+        {
+            "src": "favicon.png.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "favicon.png.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
 }
