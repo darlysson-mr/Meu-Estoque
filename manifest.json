@@ -1,7 +1,7 @@
 {
-  "name": "Estoque Pessoal - Stock Control",
-  "short_name": "Stock",
-  "description": "Controle de estoque pessoal com scanner de QR Code e IA.",
+  "name": "Meu Estoque - Controle Pessoal",
+  "short_name": "Meu Estoque",
+  "description": "App de controle de estoque pessoal com scanner de QR Code e IA.",
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "portrait",
