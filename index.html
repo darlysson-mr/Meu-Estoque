@@ -50,10 +50,6 @@
             object-fit: cover;
             border-radius: 6px;
         }
-        .select-all {
-            user-select: all; /* Facilita a seleção do ID */
-            cursor: copy;
-        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -242,11 +238,8 @@
                 <div class="flex-grow">
                     <p class="font-semibold text-lg" id="edit-product-name"></p>
                     <p class="text-sm text-gray-500" id="edit-product-details"></p>
-                    <p class="text-xs text-gray-400 font-mono mt-1 flex items-center gap-1">
-                        <i data-lucide="scan" class="w-3 h-3 text-primary-pink"></i> ID: <span id="edit-product-id" class="font-bold text-dark-text/80 select-all"></span>
-                    </p>
                 </div>
-                <div id="current-stock-info" class="text-right shrink-0">
+                <div class="text-right shrink-0">
                     <p class="text-xs text-gray-500">Qtd. Atual:</p>
                     <p id="current-stock-qty" class="text-3xl font-bold text-primary-pink">0</p>
                 </div>
@@ -276,7 +269,7 @@
             </div>
 
             <button id="change-photo-btn" class="w-full bg-primary-pink/10 hover:bg-primary-pink/20 p-2 rounded-lg transition text-primary-pink font-semibold flex items-center justify-center gap-1 mb-4">
-                <i data-lucide="camera" class="w-5 h-5"></i> Alterar/Adicionar Foto do Produto
+                <i data-lucide="upload-cloud" class="w-5 h-5"></i> Alterar/Adicionar Foto do Produto (Galeria)
             </button>
             
             <button id="save-edit-btn" class="w-full bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md flex items-center justify-center">
@@ -305,7 +298,7 @@
 
     <div id="category-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg text-dark-text">
-            <h3 class="text-2xl font-bold mb-4 border-b pb-2 text-primary-pink">Gerenciar Categorias</h3>
+            <h3 class="text-2xl font-bold mb-4 border-b pb-2">Gerenciar Categorias</h3>
             <div id="categories-list" class="space-y-2 mb-4 max-h-60 overflow-y-auto"></div>
             <div class="flex gap-2 mt-4 pt-4 border-t">
                 <input type="text" id="new-category-input" placeholder="Nova Categoria (Ex: Ilhós)" class="flex-grow rounded-lg px-3 py-2 border focus:ring-2 focus:ring-primary-pink">
@@ -320,6 +313,8 @@
     <footer class="text-center p-4 text-gray-500 text-sm mt-4 bg-white shadow-inner">
         <p>Criado com IA (TensorFlow.js), Tailwind CSS e html5-qrcode.</p>
     </footer>
+
+    <input type="file" id="image-upload-input" accept="image/*" class="hidden">
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -344,7 +339,7 @@
             const scanResultContainer = document.getElementById('scan-result-container');
             const feedbackMessage = document.getElementById('feedback-message');
             
-            // Elementos de IA/Foto
+            // Elementos de IA/Foto (fluxo de cadastro principal)
             const aiRegisterBtn = document.getElementById('ai-register-btn');
             const aiRegisterBtnQuick = document.getElementById('ai-register-btn-quick');
             const aiModal = document.getElementById('ai-modal');
@@ -357,7 +352,7 @@
             const imagePreview = document.getElementById('image-preview');
             const imagePreviewContainer = document.getElementById('image-preview-container');
             const removeImageBtn = document.getElementById('remove-image-btn');
-            
+
             // Elementos de Categoria
             const manageCategoriesBtn = document.getElementById('manage-categories-btn');
             const categoryModal = document.getElementById('category-modal');
@@ -366,14 +361,12 @@
             const addCategoryBtn = document.getElementById('add-category-btn');
             const categoriesListDiv = document.getElementById('categories-list');
 
-
             // Elementos de Edição (Entrada/Saída/Deleção)
             const editModal = document.getElementById('edit-modal');
             const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
             const editProductName = document.getElementById('edit-product-name');
             const editProductDetails = document.getElementById('edit-product-details');
             const editProductImg = document.getElementById('edit-product-img');
-            const editProductId = document.getElementById('edit-product-id');
             
             // Elementos de Ajuste de Estoque
             const currentStockQty = document.getElementById('current-stock-qty');
@@ -383,6 +376,9 @@
             const saveEditBtn = document.getElementById('save-edit-btn');
             const deleteProductBtn = document.getElementById('delete-product-btn'); 
             const changePhotoBtn = document.getElementById('change-photo-btn'); // Botão de Foto no modal
+
+            // NOVOS ELEMENTOS
+            const imageUploadInput = document.getElementById('image-upload-input'); // Input de Arquivo
 
             // Elementos do Modal de Confirmação
             const confirmModal = document.getElementById('confirm-modal');
@@ -402,8 +398,8 @@
             let lastScannedProductId = null;
             let currentEditingProductId = null;
             let currentCapturedImageBase64 = null; 
-            let isEditingPhoto = false; 
-
+            let isEditingPhoto = false; // Mantido para o fluxo de IA
+            
             let aiModel = null;
             let videoStream = null;
             let detectionInterval = null;
@@ -460,10 +456,7 @@
 
             // --- Renderização de Categorias e Produtos ---
             function renderCategorySelect() {
-                // Para o formulário de cadastro
                 productCategorySelect.innerHTML = '';
-                // Não precisa mais para o modal de edição (simplificado)
-
                 categories.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat;
@@ -647,7 +640,6 @@
                 editProductName.textContent = product.name;
                 // Exibe Nome e Cat e Qtd Mínima para referência
                 editProductDetails.textContent = `Cat: ${product.category} | Mín: ${product.minAlertQty}`; 
-                editProductId.textContent = product.id; 
                 
                 // Zera inputs e define o estoque atual
                 entryQtyInput.value = 0;
@@ -673,6 +665,10 @@
                 const entry = parseInt(entryQtyInput.value, 10) || 0;
                 const exit = parseInt(exitQtyInput.value, 10) || 0;
                 
+                // Garante que a Saída não exceda o estoque disponível + entradas
+                const safeExit = Math.min(currentQty + entry, exit);
+                exitQtyInput.value = safeExit; // Atualiza o input de saída, caso o valor digitado fosse maior
+
                 const newQty = Math.max(0, currentQty + entry - exit);
                 newStockPreview.textContent = newQty;
             }
@@ -786,7 +782,7 @@
             }
 
 
-            // --- LÓGICA DA IA/FOTO ---
+            // --- LÓGICA DA IA/FOTO (MANTIDO PARA CADASTRO) ---
 
             async function loadAIModel() {
                 aiStatus.textContent = 'Carregando modelo de IA...';
@@ -848,11 +844,9 @@
                             button.textContent = label;
                             button.className = 'bg-soft-pink text-primary-pink font-semibold text-sm px-3 py-1 rounded-full hover:bg-primary-pink/30 transition';
                             button.onclick = () => {
-                                // Só sugere nome se não estiver editando foto
-                                if (!isEditingPhoto) { 
-                                    productNameInput.value = label;
-                                    showFeedback(`Nome do produto sugerido pela IA: "${label}"`);
-                                }
+                                // MODO CADASTRO: Usa a sugestão do IA
+                                productNameInput.value = label;
+                                showFeedback(`Nome do produto sugerido pela IA: "${label}"`);
                                 stopAIDetection();
                             };
                             aiButtonsContainer.appendChild(button);
@@ -872,37 +866,14 @@
                 ctx.drawImage(aiVideo, 0, 0, aiCanvas.width, aiCanvas.height);
                 const capturedBase64 = aiCanvas.toDataURL('image/jpeg', 0.8);
 
-                if (isEditingPhoto) {
-                    // MODO EDIÇÃO: Salva a foto no produto e reabre o modal de edição
-                    const product = products.find(p => p.id === currentEditingProductId);
-                    if(product) {
-                        product.imageBase64 = capturedBase64;
-                        saveProducts();
-                        renderProductList(productSearchInput.value); // Atualiza a lista principal
-
-                        editProductImg.src = capturedBase64; // Atualiza o preview no modal de edição
-                        editModal.classList.remove('hidden'); // Volta para o modal de edição
-                        showFeedback('Nova foto capturada e salva com sucesso!');
-                    }
-                } else {
-                    // MODO CADASTRO: Apenas salva no estado temporário
-                    currentCapturedImageBase64 = capturedBase64;
-                    imagePreview.src = currentCapturedImageBase64;
-                    imagePreviewContainer.classList.remove('hidden');
-                    showFeedback('Foto capturada e anexada ao produto!');
-                }
+                // No fluxo de AI, sempre salva no estado temporário (para o cadastro)
+                currentCapturedImageBase64 = capturedBase64;
+                imagePreview.src = currentCapturedImageBase64;
+                imagePreviewContainer.classList.remove('hidden');
                 
-                isEditingPhoto = false; // Reseta o flag
+                isEditingPhoto = false; 
                 stopAIDetection();
-            });
-
-            // Botão "Alterar Foto" no modal de ajuste de estoque
-            changePhotoBtn.addEventListener('click', () => {
-                 if (!currentEditingProductId) return;
-                 
-                 editModal.classList.add('hidden'); // Esconde o modal de edição
-                 isEditingPhoto = true; // Define o flag de edição de foto
-                 startAIDetection(); // Inicia a câmera
+                showFeedback('Foto capturada e anexada ao produto!');
             });
             
             removeImageBtn.addEventListener('click', () => {
@@ -910,6 +881,44 @@
                 imagePreview.src = '';
                 imagePreviewContainer.classList.add('hidden');
                 showFeedback('Foto removida.');
+            });
+
+
+            // --- NOVA LÓGICA DE GALERIA PARA AJUSTAR ESTOQUE ---
+
+            // Botão "Alterar Foto" no modal de ajuste de estoque - AGORA USA GALERIA
+            changePhotoBtn.addEventListener('click', () => {
+                 if (!currentEditingProductId) return;
+
+                 // Reseta o input e abre a galeria de arquivos
+                 imageUploadInput.value = null; // Important to trigger 'change' event even if same file is selected
+                 imageUploadInput.click();
+            });
+
+            // Listener para o input de arquivo (Galeria)
+            imageUploadInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file || !currentEditingProductId) return;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const capturedBase64 = e.target.result;
+                    const product = products.find(p => p.id === currentEditingProductId);
+
+                    if(product) {
+                        // Salva a nova foto no produto
+                        product.imageBase64 = capturedBase64;
+                        saveProducts();
+                        renderProductList(productSearchInput.value); // Atualiza a lista principal
+
+                        // Atualiza o preview no modal de edição
+                        editProductImg.src = capturedBase64;
+                        editProductImg.classList.remove('bg-gray-100'); // Remove o placeholder
+
+                        showFeedback('Nova foto carregada da galeria e salva com sucesso!');
+                    }
+                };
+                reader.readAsDataURL(file);
             });
 
 
@@ -993,9 +1002,9 @@
                  document.getElementById('stock-list-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
 
-            // Botões de IA/Foto
-            aiRegisterBtn.addEventListener('click', () => { isEditingPhoto = false; startAIDetection(); });
-            aiRegisterBtnQuick.addEventListener('click', () => { isEditingPhoto = false; startAIDetection(); });
+            // Botões de IA/Foto (fluxo de cadastro)
+            aiRegisterBtn.addEventListener('click', startAIDetection);
+            aiRegisterBtnQuick.addEventListener('click', startAIDetection);
             aiCancelBtn.addEventListener('click', stopAIDetection);
             
             // Início do Scanner (mantido)
