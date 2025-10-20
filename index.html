@@ -236,10 +236,12 @@
             
             <div class="flex items-start gap-4 mb-4 border p-3 rounded-lg bg-light-bg">
                 <div class="flex flex-col items-center shrink-0">
-                    <img id="edit-product-img" src="" alt="Foto do Produto" class="product-image shadow-md w-16 h-16 mb-2">
-                    <button id="change-image-btn" title="Alterar Foto" class="text-xs text-primary-pink hover:underline flex items-center gap-1 font-medium">
-                        <i data-lucide="upload" class="w-3 h-3"></i> Alterar Foto
-                    </button>
+                    <img id="edit-product-img" src="" alt="Foto do Produto" class="product-image shadow-md w-16 h-16 mb-2 cursor-pointer border-2 border-dashed border-gray-300 p-0.5 hover:border-primary-pink transition duration-150" title="Clique para alterar a foto">
+                    
+                    <p class="text-xs text-primary-pink flex items-center gap-1 font-medium mt-1">
+                        <i data-lucide="upload" class="w-3 h-3"></i> Alterar
+                    </p>
+                    
                     <input type="file" id="edit-image-file-input" accept="image/*" class="hidden">
                 </div>
             
@@ -356,7 +358,7 @@
             const removeImageBtn = document.getElementById('remove-image-btn');
 
             // NOVOS ELEMENTOS DE ALTERAÇÃO DE FOTO NO MODAL DE EDIÇÃO
-            const changeImageBtn = document.getElementById('change-image-btn');
+            const editProductImg = document.getElementById('edit-product-img'); // Imagem clicável
             const editImageFileInput = document.getElementById('edit-image-file-input');
 
             // Elementos de Edição (Entrada/Saída/Deleção)
@@ -364,7 +366,6 @@
             const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
             const editProductName = document.getElementById('edit-product-name');
             const editProductDetails = document.getElementById('edit-product-details');
-            const editProductImg = document.getElementById('edit-product-img');
             
             // NOVOS ELEMENTOS DO MODAL DE EDIÇÃO
             const currentStockQty = document.getElementById('current-stock-qty');
@@ -577,7 +578,7 @@
                     newQuantity = Math.max(0, parseInt(newQuantity, 10)); 
                     
                     product.quantity = newQuantity;
-                    // Note: A imagem é atualizada diretamente no objeto 'product' em handleEditImageUpload
+                    // A imagem é atualizada diretamente no objeto 'product' em handleEditImageUpload
                     saveProducts();
                     renderProductList(productSearchInput.value); 
                     
@@ -645,17 +646,15 @@
                 const entry = parseInt(entryQtyInput.value, 10) || 0;
                 const exit = parseInt(exitQtyInput.value, 10) || 0;
                 
-                // Garante que a Saída não exceda o estoque disponível + entradas
-                const safeExit = Math.min(currentQty + entry, exit);
-                // Não precisa atualizar o input de saída, apenas calcula o newQty corretamente
                 
-                const newQty = Math.max(0, currentQty + entry - exit);
+                const finalNewQty = currentQty + entry - exit;
+                const newQty = Math.max(0, finalNewQty);
                 newStockPreview.textContent = newQty;
                 
                 // Opções para evitar estoque negativo no input de saída
-                if (newQty < 0) {
-                     exitQtyInput.value = currentQty + entry; // Limita a saída ao estoque disponível + entrada
-                     updatePreview(); // Recalcula
+                if (finalNewQty < 0) {
+                     // Isso é o que a função updateQuantity fará, mas visualmente no input pode confundir.
+                     // Vamos apenas garantir que o newStockPreview não seja negativo, mas permitimos o usuário digitar valores altos.
                 }
             }
 
@@ -678,22 +677,19 @@
                 const newTotal = Math.max(0, finalNewQty);
 
 
-                // Se não houver alteração de QTD, mas houver alteração de FOTO, salva assim mesmo.
-                if (entry === 0 && exit === 0) {
-                    // Se a foto foi alterada, a `product.imageBase64` já foi modificada.
-                    if (newTotal === product.quantity) {
-                         // Verifica se a foto foi alterada, comparando com o que está na preview (que foi atualizada)
-                         if (editProductImg.src.includes(product.imageBase64)) {
-                             // Nenhuma alteração real
-                             editModal.classList.add('hidden');
-                             currentEditingProductId = null;
-                             showFeedback('Nenhuma alteração registrada.');
-                             return;
-                         }
-                    }
+                // Verifica se a foto foi alterada ou se houve mudança na quantidade
+                const quantityChanged = (entry !== 0 || exit !== 0);
+                const isImageSourceDefault = editProductImg.src.includes('placehold.co');
+                const imageChanged = (editProductImg.src !== product.imageBase64 && !isImageSourceDefault);
+
+                if (!quantityChanged && !imageChanged) {
+                    editModal.classList.add('hidden');
+                    currentEditingProductId = null;
+                    showFeedback('Nenhuma alteração registrada.');
+                    return;
                 }
 
-                // A função updateQuantity já trata a diferença e a mensagem, e salva os produtos (incluindo a imagem, se foi alterada).
+                // A função updateQuantity já trata a diferença e a mensagem, e salva os produtos.
                 updateQuantity(currentEditingProductId, newTotal);
             });
 
@@ -813,7 +809,7 @@
                 }
             }
 
-            // NOVO: Lógica para processar o upload de imagem da galeria no Modal de Edição
+            // FUNÇÃO CORRIGIDA: Lógica para processar o upload de imagem da galeria no Modal de Edição
             function handleEditImageUpload(event) {
                 const file = event.target.files[0];
                 if (file && currentEditingProductId) {
@@ -950,8 +946,8 @@
             aiRegisterBtnQuick.addEventListener('click', startAIDetection);
             aiCancelBtn.addEventListener('click', stopAIDetection);
             
-            // NOVO: Conexão do botão "Alterar Foto" com o input de arquivo no Modal de Edição
-            changeImageBtn.addEventListener('click', () => editImageFileInput.click());
+            // CORREÇÃO: Conexão do clique na IMAGEM com o input de arquivo no Modal de Edição
+            editProductImg.addEventListener('click', () => editImageFileInput.click());
             editImageFileInput.addEventListener('change', handleEditImageUpload);
 
             // Início do Scanner (mantido)
