@@ -34,6 +34,7 @@
         .fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         /* Estilos para o modal e inputs */
+        /* REMOVIDO: #ai-modal */
         #category-modal, #edit-modal, #confirm-modal { background-color: rgba(0, 0, 0, 0.8); }
         input:not([type="checkbox"]), select {
             border: 1px solid #e5e7eb !important;
@@ -231,7 +232,7 @@
                 </div>
             </div>
             
-            <button id="remove-edit-image-btn" class="text-xs text-red-500 hover:underline mb-4 w-full text-center">Remover Foto Atual</button>
+            <button id="remove-edit-image-btn" class="text-xs text-red-500 hover:underline mb-4 w-full text-center" style="display: none;">Remover Foto Atual</button>
 
 
             <div class="grid grid-cols-2 gap-4 mb-6">
@@ -321,14 +322,14 @@
             const scanResultContainer = document.getElementById('scan-result-container');
             const feedbackMessage = document.getElementById('feedback-message');
             
-            // Elementos de Foto/Upload (CADASTRO)
+            // Elementos de Foto/Upload (CADASTRO) - Agora usando o input nativo
             const aiRegisterBtn = document.getElementById('ai-register-btn'); // Botão na seção de cadastro
             const aiRegisterBtnQuick = document.getElementById('ai-register-btn-quick'); // Botão de ação rápida
             const imageUploadInput = document.getElementById('image-upload-input'); // Novo input file (Cadastro)
             const imagePreview = document.getElementById('image-preview');
             const imagePreviewContainer = document.getElementById('image-preview-container');
             const removeImageBtn = document.getElementById('remove-image-btn');
-
+            
             // Elementos de Edição (Entrada/Saída/Deleção)
             const editModal = document.getElementById('edit-modal');
             const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
