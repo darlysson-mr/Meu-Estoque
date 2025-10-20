@@ -238,6 +238,7 @@
                 <div class="flex-grow">
                     <p class="font-semibold text-lg" id="edit-product-name-display"></p>
                     <p class="text-sm text-gray-500" id="edit-product-details-display"></p>
+                    <p class="text-xs text-gray-400 font-mono mt-1" id="edit-product-id-display"></p> 
                 </div>
                 <div class="text-right shrink-0">
                     <p class="text-xs text-gray-500">Qtd. Atual:</p>
@@ -388,6 +389,7 @@
             const editProductNameDisplay = document.getElementById('edit-product-name-display');
             const editProductDetailsDisplay = document.getElementById('edit-product-details-display');
             const editProductImg = document.getElementById('edit-product-img');
+            const editProductIdDisplay = document.getElementById('edit-product-id-display'); // NOVO: Para exibir o ID
             
             // NOVOS: Elementos para edição de Detalhes
             const editProductNameInput = document.getElementById('edit-product-name-input');
@@ -733,6 +735,7 @@
                 // Atualiza os displays do cabeçalho
                 editProductNameDisplay.textContent = product.name;
                 editProductDetailsDisplay.textContent = `Cat: ${product.category} | Mín: ${product.minAlertQty}`;
+                editProductIdDisplay.textContent = `ID: ${product.id}`; // CORREÇÃO: Exibe o ID do produto
                 
                 // Zera inputs e define o estoque atual
                 entryQtyInput.value = 0;
