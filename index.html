@@ -389,7 +389,17 @@
                 updateGlobalAlertIcon();
             }
             function saveProducts() {
-                localStorage.setItem('stockControlProducts', JSON.stringify(products));
+                // Tenta salvar os produtos. Se falhar por limite de armazenamento, informa o usuário.
+                try {
+                    localStorage.setItem('stockControlProducts', JSON.stringify(products));
+                } catch (e) {
+                    if (e.name === 'QuotaExceededError') {
+                        // Isso pode acontecer se o Base64, mesmo comprimido, estiver grande demais
+                        showFeedback('Aviso: Limite de armazenamento do navegador atingido. As fotos mais recentes podem não ser salvas.', true);
+                    } else {
+                        throw e; // Lança outros erros
+                    }
+                }
                 updateGlobalAlertIcon();
             }
             function saveCategories() {
@@ -684,6 +694,47 @@
                 feedbackMessage.classList.remove('hidden');
                 setTimeout(() => feedbackMessage.classList.add('hidden'), 4000);
             }
+            
+            // =========================================================
+            // *** CORREÇÃO CRÍTICA: REDIMENSIONAMENTO E COMPRESSÃO ***
+            // =========================================================
+            function resizeImageAndConvertToBase64(file, callback, maxDim = 200, quality = 0.7) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        // Redimensiona para garantir que a maior dimensão não passe de maxDim
+                        if (width > height) {
+                            if (width > maxDim) {
+                                height *= maxDim / width;
+                                width = maxDim;
+                            }
+                        } else {
+                            if (height > maxDim) {
+                                width *= maxDim / height;
+                                height = maxDim;
+                            }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // Converte para JPEG (melhor compressão) e reduz a qualidade
+                        const base64Image = canvas.toDataURL('image/jpeg', quality); 
+                        callback(base64Image);
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+            // =========================================================
 
 
             // --- LÓGICA DE UPLOAD DE FOTO (PARA CADASTRO DE NOVO PRODUTO) ---
@@ -692,14 +743,14 @@
             function handleImageUpload(event) {
                 const file = event.target.files[0];
                 if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        currentCapturedImageBase64 = e.target.result;
+                    showFeedback('Processando imagem, por favor aguarde...');
+                    
+                    resizeImageAndConvertToBase64(file, (base64String) => {
+                        currentCapturedImageBase64 = base64String;
                         imagePreview.src = currentCapturedImageBase64;
                         imagePreviewContainer.classList.remove('hidden');
-                        showFeedback('Foto selecionada e anexada ao produto!');
-                    };
-                    reader.readAsDataURL(file);
+                        showFeedback('Foto redimensionada e pronta para ser salva com o produto!');
+                    }, 200, 0.7); // 200px max, 70% qualidade (seguro para localStorage)
                 }
                 event.target.value = ''; // Limpa o valor para permitir re-seleção
             }
@@ -741,12 +792,14 @@
             editImageUploadInput.addEventListener('change', (event) => {
                 const file = event.target.files[0];
                 if (file && currentEditingProductId) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const product = products.find(p => p.id === currentEditingProductId);
+                    
+                    showFeedback('Processando imagem de edição, por favor aguarde...');
+
+                    resizeImageAndConvertToBase64(file, (newBase64) => {
+                         const product = products.find(p => p.id === currentEditingProductId);
                         if (product) {
-                            const newBase64 = e.target.result;
-                            // Atualiza o produto no array
+                            
+                            // Atualiza o produto no array com a imagem COMPRIMIDA
                             product.imageBase64 = newBase64;
                             saveProducts();
                             
@@ -757,10 +810,9 @@
 
                             // Re-renderiza a lista para mostrar a nova foto
                             renderProductList(productSearchInput.value); 
-                            showFeedback('Foto do produto atualizada com sucesso!');
+                            showFeedback('Foto do produto redimensionada e atualizada com sucesso!');
                         }
-                    };
-                    reader.readAsDataURL(file);
+                    }, 200, 0.7);
                 }
                 event.target.value = ''; // Limpa o valor para permitir re-seleção
             });
@@ -788,7 +840,7 @@
             });
 
 
-            // --- Event Listeners ---
+            // --- Event Listeners (Sem Alterações) ---
             addProductBtn.addEventListener('click', addProduct);
             
             // Scanner 
