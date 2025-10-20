@@ -205,14 +205,28 @@
     <div id="ai-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-2xl text-center text-dark-text">
             <h3 class="text-2xl font-bold mb-4">Capturar Foto do Produto</h3>
-            <p id="ai-status" class="text-primary-pink mb-4">Aguardando permissão da câmera...</p>
+            <p id="ai-status" class="text-primary-pink mb-4">Escolha uma opção de foto.</p>
+            
+            <input type="file" id="gallery-input" accept="image/*" class="hidden">
             
             <div id="video-container" class="mb-4 rounded-lg overflow-hidden relative w-full aspect-video bg-gray-200 flex items-center justify-center">
                 <video id="ai-video" autoplay playsinline class="w-full h-full"></video>
                 <canvas id="ai-canvas" class="w-full h-full"></canvas>
+                
+                <div id="initial-photo-options" class="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-4 z-10">
+                    <p class="text-white text-xl font-semibold mb-6">Como você gostaria de adicionar a foto?</p>
+                    <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                        <button id="start-camera-btn" class="bg-primary-pink hover:bg-pink-700 text-white font-bold py-3 px-6 rounded-lg transition shadow-md flex items-center justify-center gap-1">
+                            <i data-lucide="camera" class="w-5 h-5"></i> Usar Câmera
+                        </button>
+                        <button id="select-gallery-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition shadow-md flex items-center justify-center gap-1">
+                            <i data-lucide="image" class="w-5 h-5"></i> Escolher da Galeria
+                        </button>
+                    </div>
+                </div>
             </div>
             
-            <div id="capture-actions" class="flex gap-4 justify-center mb-4">
+            <div id="capture-actions" class="flex gap-4 justify-center mb-4 hidden">
                 <button id="capture-photo-btn" class="bg-primary-pink hover:bg-pink-700 text-white font-bold py-3 px-6 rounded-lg transition shadow-md flex items-center gap-1" disabled>
                     <i data-lucide="save" class="w-5 h-5"></i> CAPTURAR FOTO
                 </button>
@@ -357,6 +371,14 @@
             const aiButtonsContainer = document.getElementById('ai-buttons-container');
             const aiCancelBtn = document.getElementById('ai-cancel-btn');
             const capturePhotoBtn = document.getElementById('capture-photo-btn');
+            
+            // NOVOS ELEMENTOS DE FOTO PARA GALERIA E SELEÇÃO
+            const galleryInput = document.getElementById('gallery-input');
+            const initialPhotoOptions = document.getElementById('initial-photo-options');
+            const startCameraBtn = document.getElementById('start-camera-btn');
+            const selectGalleryBtn = document.getElementById('select-gallery-btn');
+            const captureActions = document.getElementById('capture-actions'); 
+
             const imagePreview = document.getElementById('image-preview');
             const imagePreviewContainer = document.getElementById('image-preview-container');
             const removeImageBtn = document.getElementById('remove-image-btn');
@@ -756,7 +778,7 @@
             }
 
 
-            // --- LÓGICA DA IA/FOTO ---
+            // --- LÓGICA DA IA/FOTO (AGORA COM SELEÇÃO DE GALERIA) ---
 
             async function loadAIModel() {
                 aiStatus.textContent = 'Carregando modelo de IA...';
@@ -769,13 +791,31 @@
                     console.error("AI Model Load Error:", error);
                 }
             }
-
+            
+            // Função para INICIAR O MODAL de seleção
             async function startAIDetection() {
                 aiModal.classList.remove('hidden');
+                initialPhotoOptions.classList.remove('hidden'); // Mostra opções (Câmera/Galeria)
+                captureActions.classList.add('hidden'); // Esconde o botão de Captura da Câmera
+                
+                // Limpa status e resultados de IA
+                aiStatus.textContent = 'Escolha uma opção de foto.';
+                aiButtonsContainer.innerHTML = '';
+            }
+
+            // Função para INICIAR A CÂMERA
+            async function startCamera() {
+                initialPhotoOptions.classList.add('hidden'); // Esconde opções
+                captureActions.classList.remove('hidden'); // Mostra o botão de Captura da Câmera
+                aiVideo.style.display = 'block'; // Garante que o vídeo está visível
+
                 if (!aiModel) await loadAIModel();
 
                 aiStatus.textContent = 'Aguardando câmera...';
                 try {
+                    // Para qualquer stream existente antes de iniciar um novo
+                    stopAIDetection(false); 
+
                     videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
                     aiVideo.srcObject = videoStream;
                     
@@ -790,14 +830,25 @@
                 }
             }
             
-            function stopAIDetection() {
-                aiModal.classList.add('hidden');
+            // Função para PARAR A CÂMERA e FECHAR O MODAL
+            function stopAIDetection(hideModal = true) {
+                if(hideModal) aiModal.classList.add('hidden');
+
                 if (detectionInterval) clearInterval(detectionInterval);
+                detectionInterval = null;
+
                 if (videoStream) {
                     videoStream.getTracks().forEach(track => track.stop());
+                    videoStream = null;
                 }
                 aiVideo.srcObject = null;
+                aiVideo.style.display = 'none'; // Oculta o vídeo
+                
+                // Volta para a tela de seleção inicial ao fechar o modal
+                initialPhotoOptions.classList.remove('hidden');
+                captureActions.classList.add('hidden');
             }
+
 
             async function predictFrame() {
                 if (!aiModel || aiVideo.paused || aiVideo.ended) return;
@@ -830,50 +881,118 @@
                 }
             }
 
-            // CÓDIGO CRÍTICO CORRIGIDO (Redimensionamento + Nova Lógica de Edição):
-            capturePhotoBtn.addEventListener('click', () => {
-                if (!aiVideo.srcObject) return;
-                
-                const videoWidth = aiVideo.videoWidth;
-                const videoHeight = aiVideo.videoHeight;
+            // Função para ler a imagem da galeria (Nova)
+            function readImageFile(file) {
+                return new Promise((resolve, reject) => {
+                    if (!file) {
+                        return reject("Nenhum arquivo selecionado.");
+                    }
 
-                // LÓGICA DE REDIMENSIONAMENTO (EVITA ERRO DE LOCALSTORAGE)
-                const MAX_SIZE = 200; 
-                const ratio = Math.min(MAX_SIZE / videoWidth, MAX_SIZE / videoHeight);
-                
-                const newWidth = videoWidth * ratio;
-                const newHeight = videoHeight * ratio;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            
+                            // Lógica de Redimensionamento (mesma do modo Câmera)
+                            const MAX_SIZE = 200; 
+                            const ratio = Math.min(MAX_SIZE / img.width, MAX_SIZE / img.height);
+                            
+                            const newWidth = img.width * ratio;
+                            const newHeight = img.height * ratio;
 
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = newWidth;
-                tempCanvas.height = newHeight;
-                const tempCtx = tempCanvas.getContext('2d');
+                            canvas.width = newWidth;
+                            canvas.height = newHeight;
+                            
+                            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                            
+                            // Base64 capturado e redimensionado
+                            const capturedBase64 = canvas.toDataURL('image/jpeg', 0.7); 
+                            resolve(capturedBase64);
+                        };
+                        img.onerror = reject;
+                        img.src = e.target.result;
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
 
-                tempCtx.drawImage(aiVideo, 0, 0, videoWidth, videoHeight, 0, 0, newWidth, newHeight);
-
-                // Base64 capturado e redimensionado
-                const capturedBase64 = tempCanvas.toDataURL('image/jpeg', 0.7); 
-                
-                // LÓGICA DE DECISÃO: NOVO PRODUTO OU EDIÇÃO?
+            // Função de Processamento Final (Salva o Base64 onde deve ser)
+            async function finalizePhotoCapture(capturedBase64) {
+                 // LÓGICA DE DECISÃO: NOVO PRODUTO OU EDIÇÃO?
                 if (currentEditingProductId) {
                     // MODO EDIÇÃO: Atualiza a foto do produto diretamente no array
                     const product = products.find(p => p.id === currentEditingProductId);
                     if (product) {
                         product.imageBase64 = capturedBase64;
                         saveProducts();
-                        openEditModal(currentEditingProductId); // Reabre o modal de edição com a nova foto
+                        // Reabre o modal de edição com a nova foto, pois ele foi fechado
+                        openEditModal(currentEditingProductId); 
                         renderProductList(productSearchInput.value);
-                        showFeedback('Nova foto capturada e salva para o produto em edição!');
+                        showFeedback('Nova foto capturada/selecionada e salva para o produto em edição!');
                     }
                 } else {
                     // MODO NOVO PRODUTO: Salva na variável global para o formulário
                     currentCapturedImageBase64 = capturedBase64;
                     imagePreview.src = currentCapturedImageBase64;
                     imagePreviewContainer.classList.remove('hidden');
-                    showFeedback('Foto capturada e anexada ao NOVO produto (Redimensionada para otimização)!');
+                    showFeedback('Foto capturada/selecionada e anexada ao NOVO produto (Redimensionada para otimização)!');
                 }
                 
                 stopAIDetection(); // Fecha o modal de câmera
+            }
+            
+            // Event Listener para captura da Câmera
+            capturePhotoBtn.addEventListener('click', () => {
+                if (!aiVideo.srcObject) return;
+                
+                const videoWidth = aiVideo.videoWidth;
+                const videoHeight = aiVideo.videoHeight;
+                
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // LÓGICA DE REDIMENSIONAMENTO PARA CÂMERA
+                const MAX_SIZE = 200; 
+                const ratio = Math.min(MAX_SIZE / videoWidth, MAX_SIZE / videoHeight);
+                
+                const newWidth = videoWidth * ratio;
+                const newHeight = videoHeight * ratio;
+
+                tempCanvas.width = newWidth;
+                tempCanvas.height = newHeight;
+                
+                tempCtx.drawImage(aiVideo, 0, 0, videoWidth, videoHeight, 0, 0, newWidth, newHeight);
+
+                const capturedBase64 = tempCanvas.toDataURL('image/jpeg', 0.7); 
+                
+                finalizePhotoCapture(capturedBase64);
+            });
+            
+            // Event Listener para iniciar a Câmera (Novo botão)
+            startCameraBtn.addEventListener('click', startCamera);
+
+            // Event Listener para seleção da Galeria (Novo botão)
+            selectGalleryBtn.addEventListener('click', () => {
+                galleryInput.click(); // Dispara o input de arquivo oculto
+            });
+
+            // Event Listener para quando o arquivo da galeria é selecionado
+            galleryInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    try {
+                        const capturedBase64 = await readImageFile(file);
+                        finalizePhotoCapture(capturedBase64);
+                    } catch (error) {
+                        showFeedback(`Erro ao ler o arquivo: ${error}`, true);
+                        stopAIDetection();
+                    }
+                }
+                // Limpa o input para permitir selecionar o mesmo arquivo novamente
+                galleryInput.value = ''; 
             });
             
             removeImageBtn.addEventListener('click', () => {
@@ -933,7 +1052,7 @@
                 if (editButton) openEditModal(editButton.dataset.id);
             });
 
-            // Filtro de Busca (AGORA ROLA PARA A LISTA)
+            // Filtro de Busca
             productSearchInput.addEventListener('input', (e) => {
                 const searchValue = e.target.value.trim();
                 renderProductList(searchValue);
@@ -969,10 +1088,11 @@
                  document.getElementById('stock-list-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
 
-            // Botões de IA/Foto (Agora o rápido também inicia a câmera)
+            // Botões de IA/Foto (Agora eles chamam o modal de seleção)
             aiRegisterBtn.addEventListener('click', startAIDetection);
             aiRegisterBtnQuick.addEventListener('click', startAIDetection);
-            aiCancelBtn.addEventListener('click', stopAIDetection);
+            // Botão de Cancelar agora usa a função de parada completa
+            aiCancelBtn.addEventListener('click', () => stopAIDetection(true)); 
             
             // Início do Scanner (mantido)
             function onScanSuccess(decodedText) { 
@@ -1021,10 +1141,6 @@
                 }
             }
             
-            // Lógica de Categorias (ainda incompleta, mas a base está aqui)
-            // ...
-
-
             loadData(); // Carrega dados ao iniciar
         });
     </script>
