@@ -428,7 +428,9 @@
                 }
 
                 renderCategorySelect();
-                renderProductList();
+                // NOVO: Define "Todos os Produtos" como filtro inicial e renderiza
+                productCategorySelect.value = 'ALL_PRODUCTS'; 
+                renderProductList('ALL_PRODUCTS', true); 
                 updateGlobalAlertIcon();
             }
             function saveProducts() {
@@ -457,6 +459,12 @@
             // --- Renderização de Categorias e Produtos ---
             function renderCategorySelect() {
                 productCategorySelect.innerHTML = '';
+                // NOVO: Adiciona a opção "Todos os Produtos" para limpar o filtro
+                const allOption = document.createElement('option');
+                allOption.value = 'ALL_PRODUCTS';
+                allOption.textContent = 'Todos os Produtos'; // Nome mais amigável
+                productCategorySelect.appendChild(allOption);
+                
                 categories.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat;
@@ -481,17 +489,29 @@
                 lucide.createIcons();
             }
 
-
-            function renderProductList(filter = '') {
+            // MODIFICADO: renderProductList para aceitar o flag de filtro por categoria
+            function renderProductList(searchTerm = '', isCategoryFilter = false) { 
                 productListDiv.innerHTML = '';
                 
-                const isAlertFilter = filter.toLowerCase() === 'baixo estoque';
+                // O filtro de Alerta de Estoque Baixo é considerado um filtro de Busca (search)
+                const isAlertFilter = searchTerm.toLowerCase() === 'baixo estoque';
 
                 const filteredProducts = products.filter(p => {
                     if (isAlertFilter) {
                         return p.quantity <= p.minAlertQty;
                     }
-                    const searchLower = filter.toLowerCase();
+                    
+                    // NOVO: Lógica de Filtro por Categoria (Exato)
+                    if (isCategoryFilter) {
+                        if (searchTerm === 'ALL_PRODUCTS') {
+                            return true; // Se for o "Todos", mostra tudo
+                        }
+                        // Filtra exatamente pela categoria selecionada
+                        return p.category === searchTerm;
+                    }
+
+                    // Lógica de Busca Geral (Nome OU ID OU Categoria)
+                    const searchLower = searchTerm.toLowerCase();
                     return p.name.toLowerCase().includes(searchLower) || 
                            p.id.includes(searchLower) ||
                            p.category.toLowerCase().includes(searchLower);
@@ -500,7 +520,7 @@
                 if (filteredProducts.length === 0) {
                     const message = isAlertFilter 
                         ? 'Nenhum item com estoque baixo no momento!' 
-                        : (filter ? 'Nenhum produto encontrado.' : 'Nenhum produto cadastrado ainda.');
+                        : (searchTerm ? 'Nenhum produto encontrado.' : 'Nenhum produto cadastrado ainda.');
                     productListDiv.innerHTML = `<p class="text-gray-500 text-sm p-4 text-center">${message}</p>`;
                     return;
                 }
@@ -548,7 +568,9 @@
                 const name = productNameInput.value.trim();
                 const quantity = parseInt(productQtyInput.value, 10);
                 const minAlertQty = parseInt(minAlertQtyInput.value, 10);
-                const category = productCategorySelect.value;
+                
+                // Usa o valor do select, mas garante que não seja a opção "Todos os Produtos" na hora de cadastrar
+                const category = productCategorySelect.value === 'ALL_PRODUCTS' ? categories[0] : productCategorySelect.value; 
 
                 if (!name || isNaN(quantity) || quantity < 0 || isNaN(minAlertQty) || minAlertQty < 1 || !category) {
                     showFeedback('Por favor, preencha Nome, Qtd Inicial, Qtd Mínima e Categoria corretamente.', true);
@@ -566,7 +588,8 @@
                 
                 products.push(newProduct);
                 saveProducts();
-                renderProductList();
+                // Renderiza a lista usando o filtro atual (ou sem filtro se 'ALL_PRODUCTS' for selecionado)
+                renderProductList(productCategorySelect.value, true); 
                 
                 // Limpa o formulário e a foto
                 productNameInput.value = '';
@@ -574,6 +597,9 @@
                 minAlertQtyInput.value = '3';
                 currentCapturedImageBase64 = null;
                 imagePreviewContainer.classList.add('hidden');
+                
+                // Volta a seleção de categoria para 'ALL_PRODUCTS' para mostrar todos os produtos
+                productCategorySelect.value = 'ALL_PRODUCTS';
 
                 showFeedback(`Produto "${name}" adicionado com sucesso!`);
             }
@@ -584,7 +610,8 @@
                 
                 if (products.length < initialLength) {
                     saveProducts();
-                    renderProductList(productSearchInput.value);
+                    // Atualiza a lista respeitando o filtro de categoria/busca que estiver ativo
+                    renderProductList(productSearchInput.value || productCategorySelect.value, productSearchInput.value ? false : true);
                     showFeedback('Produto excluído com sucesso!');
                 } else {
                      showFeedback('Erro ao excluir produto.', true);
@@ -599,7 +626,8 @@
                     
                     product.quantity = newQuantity;
                     saveProducts();
-                    renderProductList(productSearchInput.value); 
+                    // Atualiza a lista respeitando o filtro de categoria/busca que estiver ativo
+                    renderProductList(productSearchInput.value || productCategorySelect.value, productSearchInput.value ? false : true); 
                     
                     const change = newQuantity - oldQuantity;
                     const action = change > 0 ? 'Entrada (Compra)' : (change < 0 ? 'Saída (Uso)' : 'Nenhuma Mudança');
@@ -909,7 +937,8 @@
                         // Salva a nova foto no produto
                         product.imageBase64 = capturedBase64;
                         saveProducts();
-                        renderProductList(productSearchInput.value); // Atualiza a lista principal
+                        // Atualiza a lista respeitando o filtro de categoria/busca que estiver ativo
+                        renderProductList(productSearchInput.value || productCategorySelect.value, productSearchInput.value ? false : true); 
 
                         // Atualiza o preview no modal de edição
                         editProductImg.src = capturedBase64;
@@ -947,11 +976,11 @@
             });
 
             // Controle de Estoque no Scanner (mantido)
-            document.getElementById('increase-qty-btn-scan').addEventListener('click', () => { 
-                if (lastScannedProductId) updateQuantityFromScan(lastScannedProductId, 1); 
-            });
             document.getElementById('decrease-qty-btn-scan').addEventListener('click', () => { 
                 if (lastScannedProductId) updateQuantityFromScan(lastScannedProductId, -1); 
+            });
+            document.getElementById('increase-qty-btn-scan').addEventListener('click', () => { 
+                if (lastScannedProductId) updateQuantityFromScan(lastScannedProductId, 1); 
             });
 
             // Fechar Resultado do Scan (mantido)
@@ -969,20 +998,47 @@
                 if (editButton) openEditModal(editButton.dataset.id);
             });
 
-            // Filtro de Busca (AGORA ROLA PARA A LISTA)
+            // Filtro de Busca (Geral)
             productSearchInput.addEventListener('input', (e) => {
                 const searchValue = e.target.value.trim();
-                renderProductList(searchValue);
+                // O filtro de categoria é ignorado quando a barra de busca é usada (isCategoryFilter: false)
+                renderProductList(searchValue); 
+                
+                // Zera a seleção de categoria para evitar filtros duplos ou confusão visual
+                productCategorySelect.value = 'ALL_PRODUCTS'; 
 
                 if (searchValue !== '') {
                     productListDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
             });
             
+            // NOVO: Filtro de produtos ao selecionar uma categoria no dropdown de Cadastro
+            productCategorySelect.addEventListener('change', (e) => {
+                const selectedCategory = e.target.value;
+                
+                // 1. Limpa a busca para evitar conflitos, pois o foco mudou para Categoria
+                productSearchInput.value = '';
+
+                if (selectedCategory !== 'ALL_PRODUCTS') {
+                    // 2. Filtra pela categoria exata, usando o novo flag 'isCategoryFilter: true'
+                    renderProductList(selectedCategory, true); 
+                    showFeedback(`Filtro: Exibindo apenas produtos da categoria "${selectedCategory}".`);
+                } else {
+                    // 3. Limpa o filtro (mostra todos)
+                    renderProductList('ALL_PRODUCTS', true); // Passa ALL_PRODUCTS para usar a lógica de filtro de categoria para mostrar tudo
+                    showFeedback('Filtro de categoria limpo. Exibindo todos os produtos.');
+                }
+                
+                // Rola para a lista para mostrar o resultado do filtro
+                document.getElementById('stock-list-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+
+
             // Botão "Ver Estoque" (Ação Rápida - LIMPA BUSCA E MOSTRA TUDO + ROLA)
             manualEntryBtn.addEventListener('click', () => {
                  productSearchInput.value = '';
-                 renderProductList('');
+                 productCategorySelect.value = 'ALL_PRODUCTS'; // Zera o filtro de categoria
+                 renderProductList('ALL_PRODUCTS', true);
                  showFeedback('Exibindo todos os produtos (Estoque Geral).');
                  document.getElementById('stock-list-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
@@ -990,9 +1046,13 @@
             // Botão de Alerta (Ação Rápida - FILTRA APENAS ESTOQUE BAIXO + ROLA)
             lowStockAlertBtn.addEventListener('click', () => {
                  const lowStockProducts = products.filter(p => p.quantity <= p.minAlertQty);
+                 
+                 // Limpa a categoria para não interferir no filtro de alerta
+                 productCategorySelect.value = 'ALL_PRODUCTS';
+                 
                  if (lowStockProducts.length > 0) {
                      productSearchInput.value = 'Baixo Estoque';
-                     renderProductList('Baixo Estoque');
+                     renderProductList('Baixo Estoque'); // Usa o filtro de busca
                      showFeedback(`Exibindo ${lowStockProducts.length} itens com estoque baixo.`, true);
                  } else {
                      productSearchInput.value = '';
