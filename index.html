@@ -22,6 +22,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@latest/dist/coco-ssd.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <link rel="icon" href="favicon.png" type="image/png">
@@ -287,8 +288,17 @@
                  <p class="text-sm text-gray-700">Novo Estoque Previsto:</p>
                  <p id="new-stock-preview" class="text-2xl font-bold text-dark-text">0</p>
             </div>
-
-
+            
+            <div id="qrcode-section" class="mb-6 p-4 border border-gray-200 rounded-lg bg-light-bg text-center">
+                <p class="font-bold text-dark-text mb-2 flex items-center justify-center">
+                    <i data-lucide="qr-code" class="w-5 h-5 mr-2 text-primary-pink"></i> QR Code do Produto
+                </p>
+                <div id="qrcode-display" class="w-32 h-32 mx-auto mb-3 bg-white p-1 rounded-md shadow-inner">
+                    </div>
+                <button id="print-qrcode-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm flex items-center justify-center shadow-md" disabled>
+                    <i data-lucide="printer" class="w-4 h-4 mr-2"></i> Imprimir QR Code
+                </button>
+            </div>
             <button id="save-edit-btn" class="w-full bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md flex items-center justify-center">
                 <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> REGISTRAR MOVIMENTAÇÃO
             </button>
@@ -405,6 +415,10 @@
             // Ações Rápidas
             const manualEntryBtn = document.getElementById('manual-entry-btn');
             const lowStockAlertBtn = document.getElementById('low-stock-alert-btn');
+            
+            // NOVO: Elementos de QR Code
+            const qrcodeDisplay = document.getElementById('qrcode-display');
+            const printQrcodeBtn = document.getElementById('print-qrcode-btn');
 
             
             // Variáveis de Estado
@@ -419,7 +433,8 @@
             let aiModel = null;
             let videoStream = null;
             let detectionInterval = null;
-            let pendingConfirmationAction = null; 
+            let pendingConfirmationAction = null;
+            let qrcode = null; // NOVO: Variável para armazenar a instância do QR Code
 
             // Mapeamento simples de classes COCO-SSD para Português (para melhor UX)
             const ptMap = {
@@ -801,6 +816,9 @@
                 editProductImg.src = product.imageBase64 || 'https://placehold.co/100x100/f5f5f5/e91e63?text=S%2F+FOTO';
                 editProductImg.classList.toggle('bg-gray-100', !product.imageBase64);
 
+                // NOVO: Gera e exibe o QR Code
+                generateQRCode(product.id, product.name);
+
                 editModal.classList.remove('hidden');
                 lucide.createIcons();
             }
@@ -1040,8 +1058,96 @@
             });
 
 
+            // --- NOVO: LÓGICA DE GERAÇÃO E IMPRESSÃO DE QR CODE ---
+
+            function generateQRCode(productId, productName) {
+                // Limpa a área de exibição
+                qrcodeDisplay.innerHTML = '';
+                
+                // O ID é o valor que o scanner precisa ler.
+                const qrCodeValue = productId; 
+
+                // Cria a instância do QR Code
+                // O qrcode.js cria um canvas ou uma imagem dentro da div
+                qrcode = new QRCode(qrcodeDisplay, {
+                    text: qrCodeValue,
+                    width: 120,
+                    height: 120,
+                    colorDark: "#262626", // dark-text
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                // Habilita o botão de impressão
+                printQrcodeBtn.disabled = false;
+                printQrcodeBtn.textContent = 'Imprimir QR Code';
+                printQrcodeBtn.classList.replace('bg-gray-600', 'bg-primary-pink');
+                printQrcodeBtn.classList.replace('hover:bg-gray-700', 'hover:bg-pink-700');
+            }
+
+
+            function printQRCode() {
+                if (!qrcode || !currentEditingProductId) {
+                    showFeedback('QR Code não gerado ou produto não selecionado.', true);
+                    return;
+                }
+
+                const product = products.find(p => p.id === currentEditingProductId);
+                if (!product) return;
+
+                // Pega o elemento Canvas/Imagem gerado pelo qrcode.js (é o primeiro filho da div)
+                const qrCodeElement = qrcodeDisplay.firstChild; 
+                if (!qrCodeElement) return;
+
+                // 1. Cria um conteúdo de impressão HTML minimalista
+                const printWindow = window.open('', '', 'height=400,width=400');
+                
+                printWindow.document.write('<html><head><title>Imprimir QR Code</title>');
+                
+                // Estilos básicos para impressão
+                printWindow.document.write(`
+                    <style>
+                        @media print {
+                            body { font-family: sans-serif; text-align: center; padding: 20px; }
+                            .qr-container { border: 2px solid #262626; display: inline-block; padding: 15px; border-radius: 5px; }
+                            h1 { font-size: 16px; margin-bottom: 5px; color: #333; }
+                            p { font-size: 10px; margin-top: 5px; color: #555; }
+                            img, canvas { display: block; margin: 0 auto; }
+                        }
+                    </style>
+                `);
+                
+                printWindow.document.write('</head><body>');
+                printWindow.document.write('<div class="qr-container">');
+                printWindow.document.write(`<h1>${product.name}</h1>`);
+                
+                // Copia o Canvas/Imagem do QR Code para a janela de impressão
+                if (qrCodeElement.tagName === 'CANVAS') {
+                    const imgData = qrCodeElement.toDataURL("image/png");
+                    printWindow.document.write(`<img src="${imgData}" style="width:100px; height:100px;">`);
+                } else if (qrCodeElement.tagName === 'IMG') {
+                    printWindow.document.write(`<img src="${qrCodeElement.src}" style="width:100px; height:100px;">`);
+                }
+                
+                printWindow.document.write(`<p>ID: ${product.id}</p>`);
+                printWindow.document.write('</div>');
+                printWindow.document.write('</body></html>');
+                
+                printWindow.document.close();
+                
+                // Tempo de espera para o conteúdo carregar antes de imprimir
+                printWindow.onload = function() {
+                    printWindow.focus();
+                    printWindow.print();
+                    // printWindow.close(); // Decisão de deixar o usuário fechar
+                };
+            }
+
             // --- Event Listeners ---
             addProductBtn.addEventListener('click', addProduct);
+            
+            // NOVO: Listener para o botão de impressão do QR Code
+            printQrcodeBtn.addEventListener('click', printQRCode);
             
             // Scanner 
             const toggleScanner = () => {
