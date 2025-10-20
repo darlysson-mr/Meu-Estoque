@@ -275,40 +275,19 @@
                 </div>
             </div>
 
-            <div class="space-y-4 mb-4 hidden" id="product-details-edit-container">
-                <h4 class="text-lg font-semibold border-b pb-1 text-primary-pink">Editar Detalhes do Produto</h4>
-                <div>
-                    <label for="edit-name-input" class="block text-sm font-medium text-dark-text mb-1">Nome do Produto</label>
-                    <input type="text" id="edit-name-input" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink transition shadow-sm">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="edit-min-qty-input" class="block text-sm font-medium text-dark-text mb-1">Qtd. Mínima p/ Alerta</label>
-                        <input type="number" id="edit-min-qty-input" min="1" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink transition shadow-sm">
-                    </div>
-                    <div>
-                        <label for="edit-category-select" class="block text-sm font-medium text-dark-text mb-1">Categoria</label>
-                        <select id="edit-category-select" class="w-full rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink transition shadow-sm"></select>
-                    </div>
-                </div>
-                <button id="change-photo-btn" class="w-full bg-primary-pink/10 hover:bg-primary-pink/20 p-2 rounded-lg transition text-primary-pink font-semibold flex items-center justify-center gap-1">
-                    <i data-lucide="camera" class="w-5 h-5"></i> Alterar/Adicionar Foto do Produto
-                </button>
-            </div>
-            
-            <button id="save-edit-btn" data-action="stock" class="w-full bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md flex items-center justify-center">
-                <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> REGISTRAR MOVIMENTAÇÃO
+            <button id="change-photo-btn" class="w-full bg-primary-pink/10 hover:bg-primary-pink/20 p-2 rounded-lg transition text-primary-pink font-semibold flex items-center justify-center gap-1 mb-4">
+                <i data-lucide="camera" class="w-5 h-5"></i> Alterar/Adicionar Foto do Produto
             </button>
             
-            <button id="toggle-details-edit-btn" data-mode="edit" class="mt-3 w-full bg-gray-200 hover:bg-gray-300 text-dark-text font-bold py-2 rounded-lg transition flex items-center justify-center">
-                <i data-lucide="pencil" class="w-4 h-4 mr-1"></i> Editar Nome, Categoria e Foto
+            <button id="save-edit-btn" class="w-full bg-primary-pink hover:bg-pink-700 text-white font-bold py-2 px-4 rounded-lg transition shadow-md flex items-center justify-center">
+                <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> REGISTRAR MOVIMENTAÇÃO
             </button>
             
             <button id="delete-product-btn" class="mt-3 w-full bg-red-100 hover:bg-red-200 text-red-600 font-bold py-2 rounded-lg transition flex items-center justify-center">
                 <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Excluir Produto
             </button>
             
-            <button id="close-edit-modal-btn" class="mt-3 w-full bg-gray-200 hover:bg-gray-300 text-dark-text font-bold py-2 rounded-lg transition">Cancelar / Fechar</button>
+            <button id="close-edit-modal-btn" class="mt-3 w-full bg-gray-200 hover:bg-gray-300 text-dark-text font-bold py-2 rounded-lg transition">Voltar</button>
         </div>
     </div>
 
@@ -396,23 +375,14 @@
             const editProductImg = document.getElementById('edit-product-img');
             const editProductId = document.getElementById('edit-product-id');
             
-            // Novos elementos do Modal de Edição de Detalhes
-            const stockAdjustmentContainer = document.getElementById('stock-adjustment-container');
-            const productDetailsEditContainer = document.getElementById('product-details-edit-container');
-            const toggleDetailsEditBtn = document.getElementById('toggle-details-edit-btn');
-            const editNameInput = document.getElementById('edit-name-input');
-            const editMinQtyInput = document.getElementById('edit-min-qty-input');
-            const editCategorySelect = document.getElementById('edit-category-select');
-            const changePhotoBtn = document.getElementById('change-photo-btn');
-            
             // Elementos de Ajuste de Estoque
             const currentStockQty = document.getElementById('current-stock-qty');
             const entryQtyInput = document.getElementById('entry-qty-input');
             const exitQtyInput = document.getElementById('exit-qty-input');
             const newStockPreview = document.getElementById('new-stock-preview');
-
             const saveEditBtn = document.getElementById('save-edit-btn');
             const deleteProductBtn = document.getElementById('delete-product-btn'); 
+            const changePhotoBtn = document.getElementById('change-photo-btn'); // Botão de Foto no modal
 
             // Elementos do Modal de Confirmação
             const confirmModal = document.getElementById('confirm-modal');
@@ -432,7 +402,7 @@
             let lastScannedProductId = null;
             let currentEditingProductId = null;
             let currentCapturedImageBase64 = null; 
-            let isEditingPhoto = false; // Novo flag para saber se a foto está sendo editada no modal
+            let isEditingPhoto = false; 
 
             let aiModel = null;
             let videoStream = null;
@@ -492,17 +462,13 @@
             function renderCategorySelect() {
                 // Para o formulário de cadastro
                 productCategorySelect.innerHTML = '';
-                // Para o modal de edição de detalhes
-                editCategorySelect.innerHTML = ''; 
+                // Não precisa mais para o modal de edição (simplificado)
 
                 categories.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat;
                     option.textContent = cat;
                     productCategorySelect.appendChild(option);
-
-                    const editOption = option.cloneNode(true);
-                    editCategorySelect.appendChild(editOption);
                 });
             }
 
@@ -648,31 +614,11 @@
                     
                     showFeedback(message);
 
-                    // Se estiver no modal de edição, atualiza a lista e fecha
+                    // Se estiver no modal de edição, fecha
                     if (currentEditingProductId) {
                          editModal.classList.add('hidden');
                          currentEditingProductId = null;
                     }
-                }
-            }
-
-            function updateDetails(productId, name, minQty, category, imageBase64) {
-                const product = products.find(p => p.id === productId);
-                if (product) {
-                    product.name = name;
-                    product.minAlertQty = parseInt(minQty, 10);
-                    product.category = category;
-                    // Só atualiza a imagem se um novo base64 for passado ou se for explicitamente limpa
-                    if (imageBase64 !== undefined) {
-                        product.imageBase64 = imageBase64;
-                    }
-                    
-                    saveProducts();
-                    renderProductList(productSearchInput.value); 
-                    showFeedback(`Detalhes do produto "${product.name}" atualizados com sucesso!`);
-
-                    editModal.classList.add('hidden');
-                    currentEditingProductId = null;
                 }
             }
 
@@ -691,7 +637,7 @@
                 }
             }
             
-            // --- Lógica do Modal de Edição (Entrada/Saída/Detalhes) ---
+            // --- Lógica do Modal de Edição (Ajustar Estoque) ---
             function openEditModal(productId) {
                 const product = products.find(p => p.id === productId);
                 if (!product) return;
@@ -699,22 +645,14 @@
                 currentEditingProductId = productId;
                 
                 editProductName.textContent = product.name;
-                editProductDetails.textContent = `Cat: ${product.category} | Mín: ${product.minAlertQty}`;
-                editProductId.textContent = product.id; // Exibe o ID do Produto
+                // Exibe Nome e Cat e Qtd Mínima para referência
+                editProductDetails.textContent = `Cat: ${product.category} | Mín: ${product.minAlertQty}`; 
+                editProductId.textContent = product.id; 
                 
-                // Preenche os campos de Edição de Detalhes
-                renderCategorySelect(); // Garante que a lista de categorias está atualizada
-                editNameInput.value = product.name;
-                editMinQtyInput.value = product.minAlertQty;
-                editCategorySelect.value = product.category; // Seleciona a categoria atual
-                
-                // Zera inputs e define o estoque atual (para a vista de estoque)
+                // Zera inputs e define o estoque atual
                 entryQtyInput.value = 0;
                 exitQtyInput.value = 0;
                 currentStockQty.textContent = product.quantity;
-                
-                // Exibe a vista de Ajuste de Estoque por padrão
-                toggleEditMode('stock');
                 
                 // Atualiza a visualização da prévia
                 updatePreview();
@@ -726,26 +664,6 @@
                 lucide.createIcons();
             }
 
-            // Função para alternar entre a vista de Estoque e Edição de Detalhes
-            function toggleEditMode(mode) {
-                if (mode === 'stock') {
-                    stockAdjustmentContainer.classList.remove('hidden');
-                    productDetailsEditContainer.classList.add('hidden');
-                    saveEditBtn.dataset.action = 'stock';
-                    saveEditBtn.innerHTML = '<i data-lucide="check-circle" class="w-5 h-5 mr-2"></i> REGISTRAR MOVIMENTAÇÃO';
-                    toggleDetailsEditBtn.dataset.mode = 'edit';
-                    toggleDetailsEditBtn.innerHTML = '<i data-lucide="pencil" class="w-4 h-4 mr-1"></i> Editar Nome, Categoria e Foto';
-                } else if (mode === 'details') {
-                    stockAdjustmentContainer.classList.add('hidden');
-                    productDetailsEditContainer.classList.remove('hidden');
-                    saveEditBtn.dataset.action = 'details';
-                    saveEditBtn.innerHTML = '<i data-lucide="save" class="w-5 h-5 mr-2"></i> SALVAR DETALHES';
-                    toggleDetailsEditBtn.dataset.mode = 'stock';
-                    toggleDetailsEditBtn.innerHTML = '<i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i> Voltar para Ajuste de Estoque';
-                }
-                lucide.createIcons();
-            }
-
             // Função para calcular a prévia do estoque
             function updatePreview() {
                 const product = products.find(p => p.id === currentEditingProductId);
@@ -754,9 +672,6 @@
                 const currentQty = product.quantity;
                 const entry = parseInt(entryQtyInput.value, 10) || 0;
                 const exit = parseInt(exitQtyInput.value, 10) || 0;
-                
-                const safeExit = Math.min(currentQty + entry, exit);
-                // exitQtyInput.value = safeExit; // Não vamos forçar o input, apenas o cálculo
                 
                 const newQty = Math.max(0, currentQty + entry - exit);
                 newStockPreview.textContent = newQty;
@@ -810,50 +725,21 @@
             entryQtyInput.addEventListener('input', updatePreview);
             exitQtyInput.addEventListener('input', updatePreview);
             
-            // Evento para alternar entre as vistas do modal
-            toggleDetailsEditBtn.addEventListener('click', () => {
-                const mode = toggleDetailsEditBtn.dataset.mode;
-                toggleEditMode(mode);
-            });
-
-
+            // Lógica de salvar estoque (sem a complicação de editar detalhes)
             saveEditBtn.addEventListener('click', () => {
                 if (!currentEditingProductId) return;
-                const action = saveEditBtn.dataset.action;
 
-                if (action === 'stock') {
-                    const entry = parseInt(entryQtyInput.value, 10) || 0;
-                    const exit = parseInt(exitQtyInput.value, 10) || 0;
-                    const newTotal = parseInt(newStockPreview.textContent, 10);
-                    
-                    if (entry === 0 && exit === 0) {
-                        editModal.classList.add('hidden');
-                        currentEditingProductId = null;
-                        showFeedback('Nenhuma alteração de estoque registrada.');
-                        return;
-                    }
-                    updateQuantity(currentEditingProductId, newTotal);
-
-                } else if (action === 'details') {
-                    const name = editNameInput.value.trim();
-                    const minQty = editMinQtyInput.value;
-                    const category = editCategorySelect.value;
-                    
-                    if (!name || parseInt(minQty, 10) < 1) {
-                         showFeedback('Nome e Quantidade Mínima devem ser válidos.', true);
-                         return;
-                    }
-
-                    // A foto base64 é obtida do `currentCapturedImageBase64` se a câmera foi usada.
-                    // Caso contrário, usa a foto existente no produto.
-                    const product = products.find(p => p.id === currentEditingProductId);
-                    const newBase64 = currentCapturedImageBase64 !== null ? currentCapturedImageBase64 : product.imageBase64;
-                    
-                    updateDetails(currentEditingProductId, name, minQty, category, newBase64);
-                    
-                    // Limpa o base64 temporário após salvar os detalhes
-                    currentCapturedImageBase64 = null;
+                const entry = parseInt(entryQtyInput.value, 10) || 0;
+                const exit = parseInt(exitQtyInput.value, 10) || 0;
+                const newTotal = parseInt(newStockPreview.textContent, 10);
+                
+                if (entry === 0 && exit === 0) {
+                    editModal.classList.add('hidden');
+                    currentEditingProductId = null;
+                    showFeedback('Nenhuma alteração de estoque registrada.');
+                    return;
                 }
+                updateQuantity(currentEditingProductId, newTotal);
             });
 
 
@@ -874,7 +760,7 @@
             closeEditModalBtn.addEventListener('click', () => {
                 editModal.classList.add('hidden');
                 currentEditingProductId = null;
-                currentCapturedImageBase64 = null; // Limpa qualquer foto pendente
+                currentCapturedImageBase64 = null; 
                 isEditingPhoto = false;
             });
 
@@ -962,7 +848,7 @@
                             button.textContent = label;
                             button.className = 'bg-soft-pink text-primary-pink font-semibold text-sm px-3 py-1 rounded-full hover:bg-primary-pink/30 transition';
                             button.onclick = () => {
-                                // Só sugere nome se não estiver editando foto (no modal de cadastro)
+                                // Só sugere nome se não estiver editando foto
                                 if (!isEditingPhoto) { 
                                     productNameInput.value = label;
                                     showFeedback(`Nome do produto sugerido pela IA: "${label}"`);
@@ -987,13 +873,19 @@
                 const capturedBase64 = aiCanvas.toDataURL('image/jpeg', 0.8);
 
                 if (isEditingPhoto) {
-                    // Se estiver editando no modal, salva a foto no estado temporário e volta para o modal de edição
-                    currentCapturedImageBase64 = capturedBase64;
-                    editProductImg.src = capturedBase64; // Atualiza o preview no modal de edição
-                    editModal.classList.remove('hidden'); // Volta para o modal de edição
-                    showFeedback('Nova foto capturada e pronta para ser salva nos detalhes.');
+                    // MODO EDIÇÃO: Salva a foto no produto e reabre o modal de edição
+                    const product = products.find(p => p.id === currentEditingProductId);
+                    if(product) {
+                        product.imageBase64 = capturedBase64;
+                        saveProducts();
+                        renderProductList(productSearchInput.value); // Atualiza a lista principal
+
+                        editProductImg.src = capturedBase64; // Atualiza o preview no modal de edição
+                        editModal.classList.remove('hidden'); // Volta para o modal de edição
+                        showFeedback('Nova foto capturada e salva com sucesso!');
+                    }
                 } else {
-                    // Se estiver em modo de cadastro, atualiza o preview da foto
+                    // MODO CADASTRO: Apenas salva no estado temporário
                     currentCapturedImageBase64 = capturedBase64;
                     imagePreview.src = currentCapturedImageBase64;
                     imagePreviewContainer.classList.remove('hidden');
@@ -1004,8 +896,10 @@
                 stopAIDetection();
             });
 
-            // Botão "Alterar Foto" no modal de edição
+            // Botão "Alterar Foto" no modal de ajuste de estoque
             changePhotoBtn.addEventListener('click', () => {
+                 if (!currentEditingProductId) return;
+                 
                  editModal.classList.add('hidden'); // Esconde o modal de edição
                  isEditingPhoto = true; // Define o flag de edição de foto
                  startAIDetection(); // Inicia a câmera
