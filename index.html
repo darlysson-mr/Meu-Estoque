@@ -200,7 +200,9 @@
                         </button>
                     </div>
 
-                    <button id="close-scan-result-btn" class="mt-4 text-gray-500 hover:text-primary-pink transition">Fechar Resultado</button>
+                    <button id="close-scan-result-btn" class="mt-4 text-gray-500 hover:text-primary-pink transition font-semibold flex items-center justify-center w-full">
+                         <i data-lucide="arrow-left" class="mr-1 w-4 h-4"></i> Voltar
+                    </button>
                 </div>
                 <div id="feedback-message" class="mt-4 text-center font-medium hidden"></div>
             </div>
@@ -840,7 +842,7 @@
             });
 
 
-            // --- Event Listeners (Sem Alterações) ---
+            // --- Event Listeners ---
             addProductBtn.addEventListener('click', addProduct);
             
             // Scanner 
@@ -874,12 +876,13 @@
                 if (lastScannedProductId) updateQuantityFromScan(lastScannedProductId, -1); 
             });
 
-            // Fechar Resultado do Scan (mantido)
+            // CORREÇÃO: Fechar Resultado do Scan/Botão Voltar (Chama stopScanner)
             document.getElementById('close-scan-result-btn').addEventListener('click', () => {
                 scanResultContainer.classList.add('hidden');
                 scannerContainer.classList.remove('hidden');
                 lastScannedProductId = null;
-                stopScanner();
+                // Garante que o scanner pare se ainda estiver rodando em background
+                stopScanner(); 
                 showFeedback('Scanner finalizado.');
             });
             
