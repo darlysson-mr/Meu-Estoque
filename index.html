@@ -143,7 +143,7 @@
                     </div>
 
                     <div>
-                         <label for="product-category" class="block text-sm font-medium text-dark-text mb-1">Categoria</label>
+                         <label for="product-category" class="block text-sm font-medium text-dark-text mb-1">Categoria (Selecione para Filtrar)</label>
                          <div class="flex gap-2">
                              <select id="product-category" class="flex-grow rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-pink focus:outline-none transition shadow-sm"></select>
                              <button id="manage-categories-btn" title="Gerenciar Categorias" class="bg-gray-200 hover:bg-gray-300 p-2 rounded-lg transition text-dark-text">
@@ -297,7 +297,7 @@
                 <i data-lucide="trash-2" class="w-4 h-4 mr-1"></i> Excluir Produto
             </button>
             
-            <button id="close-edit-modal-btn" class="mt-3 w-full bg-gray-200 hover:bg-gray-300 text-dark-text font-bold py-2 rounded-lg transition">Voltar</button>
+            <button id="close-edit-modal-btn" class="mt-3 w-full bg-gray-200 hover:bg-gray-300 text-dark-text font-bold py-2 rounded-lg transition block">Voltar</button>
         </div>
     </div>
 
@@ -380,13 +380,13 @@
             const editModal = document.getElementById('edit-modal');
             const closeEditModalBtn = document.getElementById('close-edit-modal-btn');
             
-            // ELEMENTOS DO MODAL DE EDIÇÃO (NOVOS E RESTAURADOS)
-            const editProductImg = document.getElementById('edit-product-img'); // Imagem clicável
-            const editImageFileInput = document.getElementById('edit-image-file-input'); // Input de arquivo escondido
-            const editProductNameInput = document.getElementById('edit-product-name-input'); // Input Nome
-            const editProductCategorySelect = document.getElementById('edit-product-category-select'); // Select Categoria
-            const editMinAlertQtyInput = document.getElementById('edit-min-alert-qty-input'); // Input Qtd Minima
-            const editProductIdDisplay = document.getElementById('edit-product-id'); // ID
+            // ELEMENTOS DO MODAL DE EDIÇÃO 
+            const editProductImg = document.getElementById('edit-product-img'); 
+            const editImageFileInput = document.getElementById('edit-image-file-input'); 
+            const editProductNameInput = document.getElementById('edit-product-name-input'); 
+            const editProductCategorySelect = document.getElementById('edit-product-category-select'); 
+            const editMinAlertQtyInput = document.getElementById('edit-min-alert-qty-input'); 
+            const editProductIdDisplay = document.getElementById('edit-product-id'); 
             
             const currentStockQty = document.getElementById('current-stock-qty');
             const entryQtyInput = document.getElementById('entry-qty-input');
@@ -414,7 +414,7 @@
             let lastScannedProductId = null;
             let currentEditingProductId = null;
             let currentCapturedImageBase64 = null; 
-            let originalImageBase64 = null; // Para verificar a persistência da foto no estoque
+            let originalImageBase64 = null; 
             
             let aiModel = null;
             let videoStream = null;
@@ -471,7 +471,7 @@
                 lucide.createIcons();
             }
             
-            // --- Lógica de Categorias (RESTAURADA) ---
+            // --- Lógica de Categorias ---
             function renderCategoriesList() {
                 categoriesListDiv.innerHTML = '';
                 categories.forEach(cat => {
@@ -520,7 +520,7 @@
                 }
             }
             
-            // Event listeners para o modal de categorias (garantindo que a funcionalidade volte)
+            // Event listeners para o modal de categorias
             manageCategoriesBtn.addEventListener('click', () => {
                 renderCategoriesList();
                 categoryModal.classList.remove('hidden');
@@ -536,18 +536,26 @@
 
             // --- Renderização de Categorias e Produtos ---
             function renderCategorySelect() {
-                // Popula o select do formulário de cadastro
+                // Limpa e popula o select do formulário de cadastro
+                const currentCategory = productCategorySelect.value;
                 productCategorySelect.innerHTML = '';
                 
-                // Popula o select do modal de edição (se existir)
+                // Limpa e popula o select do modal de edição (se existir)
                 if (editProductCategorySelect) {
                     editProductCategorySelect.innerHTML = '';
                 }
                 
+                // Adiciona a opção de filtro "Todos" no formulário de cadastro
+                const allOption = document.createElement('option');
+                allOption.value = 'Todos';
+                allOption.textContent = 'Todos (Ver Estoque Geral)';
+                productCategorySelect.appendChild(allOption);
+
                 categories.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat;
                     option.textContent = cat;
+                    
                     productCategorySelect.appendChild(option);
                     
                     if (editProductCategorySelect) {
@@ -555,18 +563,51 @@
                         editProductCategorySelect.appendChild(editOption);
                     }
                 });
+
+                // Restaura o valor selecionado
+                if (currentCategory && productCategorySelect.querySelector(`option[value="${currentCategory}"]`)) {
+                    productCategorySelect.value = currentCategory;
+                } else {
+                    productCategorySelect.value = 'Todos'; // Default para filtro
+                }
+
+                 // Adiciona a opção "Geral" se o array de categorias estiver vazio no cadastro.
+                 // Não precisa, pois a lógica de loadData já garante 'Geral' se estiver vazio.
+                 
             }
+            
+            // NOVO: FILTRAR A LISTA AO SELECIONAR A CATEGORIA
+            productCategorySelect.addEventListener('change', (e) => {
+                const selectedCategory = e.target.value;
+                if (selectedCategory === 'Todos') {
+                    productSearchInput.value = '';
+                    renderProductList('');
+                } else {
+                    // Filtra por categoria E rola a tela para a lista
+                    renderProductList(`category:${selectedCategory}`);
+                    productSearchInput.value = ''; // Limpa a busca textual
+                    document.getElementById('stock-list-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+
 
             function renderProductList(filter = '') {
                 productListDiv.innerHTML = '';
                 
                 const isAlertFilter = filter.toLowerCase() === 'baixo estoque';
+                const isCategoryFilter = filter.startsWith('category:');
+                const categoryFilterName = isCategoryFilter ? filter.substring(9) : null;
 
-                // CORREÇÃO: A busca por produto funciona por Nome, ID e Categoria!
                 const filteredProducts = products.filter(p => {
                     if (isAlertFilter) {
                         return p.quantity <= p.minAlertQty;
                     }
+                    
+                    // NOVO FILTRO POR CATEGORIA
+                    if (isCategoryFilter) {
+                        return p.category === categoryFilterName;
+                    }
+                    
                     const searchLower = filter.toLowerCase();
                     return p.name.toLowerCase().includes(searchLower) || 
                            p.id.includes(searchLower) ||
@@ -574,9 +615,16 @@
                 });
                 
                 if (filteredProducts.length === 0) {
-                    const message = isAlertFilter 
-                        ? 'Nenhum item com estoque baixo no momento!' 
-                        : (filter ? 'Nenhum produto encontrado.' : 'Nenhum produto cadastrado ainda.');
+                    let message;
+                    if (isAlertFilter) {
+                        message = 'Nenhum item com estoque baixo no momento!'; 
+                    } else if (isCategoryFilter) {
+                         message = `Nenhum produto encontrado na categoria "${categoryFilterName}".`;
+                    } else if (filter) {
+                        message = 'Nenhum produto encontrado.';
+                    } else {
+                        message = 'Nenhum produto cadastrado ainda.';
+                    }
                     productListDiv.innerHTML = `<p class="text-gray-500 text-sm p-4 text-center">${message}</p>`;
                     return;
                 }
@@ -624,7 +672,14 @@
                 const name = productNameInput.value.trim();
                 const quantity = parseInt(productQtyInput.value, 10);
                 const minAlertQty = parseInt(minAlertQtyInput.value, 10);
-                const category = productCategorySelect.value;
+                
+                // Ignora o valor 'Todos' do select de categoria se for o caso
+                let category = productCategorySelect.value;
+                if (category === 'Todos') {
+                    // Tenta usar 'Geral' se 'Todos' for selecionado na hora do cadastro
+                    category = categories.includes('Geral') ? 'Geral' : categories[0] || 'Geral'; 
+                }
+
 
                 if (!name || isNaN(quantity) || quantity < 0 || isNaN(minAlertQty) || minAlertQty < 1 || !category) {
                     showFeedback('Por favor, preencha Nome, Qtd Inicial, Qtd Mínima e Categoria corretamente.', true);
@@ -648,6 +703,7 @@
                 productNameInput.value = '';
                 productQtyInput.value = '1';
                 minAlertQtyInput.value = '3';
+                productCategorySelect.value = 'Todos'; // Volta para a opção de filtro
                 currentCapturedImageBase64 = null;
                 imagePreview.src = ''; 
                 imagePreviewContainer.classList.add('hidden');
@@ -768,7 +824,7 @@
             entryQtyInput.addEventListener('input', updatePreview);
             exitQtyInput.addEventListener('input', updatePreview);
             
-            // FUNÇÃO CORRIGIDA: Lógica para processar o upload de imagem da galeria no Modal de Edição
+            // Lógica para processar o upload de imagem da galeria no Modal de Edição
             function handleEditImageUpload(event) {
                 const file = event.target.files[0];
                 if (file && currentEditingProductId) {
@@ -1047,6 +1103,7 @@
             // Botão "Ver Estoque" (Ação Rápida - LIMPA BUSCA E MOSTRA TUDO + ROLA)
             manualEntryBtn.addEventListener('click', () => {
                  productSearchInput.value = ''; // Limpa a busca
+                 productCategorySelect.value = 'Todos'; // Limpa o filtro de categoria
                  renderProductList(''); // Renderiza tudo
                  showFeedback('Exibindo todos os produtos (Estoque Geral).');
                  // Rola suavemente para a lista
@@ -1057,11 +1114,13 @@
             lowStockAlertBtn.addEventListener('click', () => {
                  const lowStockProducts = products.filter(p => p.quantity <= p.minAlertQty);
                  if (lowStockProducts.length > 0) {
-                     productSearchInput.value = 'Baixo Estoque'; // Mantém o termo na busca
+                     productSearchInput.value = ''; 
+                     productCategorySelect.value = 'Todos'; // Limpa o filtro de categoria
                      renderProductList('Baixo Estoque'); // Filtra pela string especial
                      showFeedback(`Exibindo ${lowStockProducts.length} itens com estoque baixo.`, true);
                  } else {
                      productSearchInput.value = '';
+                     productCategorySelect.value = 'Todos';
                      renderProductList('');
                      showFeedback('Nenhum item com estoque baixo no momento.', false);
                  }
@@ -1069,12 +1128,12 @@
                  document.getElementById('stock-list-title').scrollIntoView({ behavior: 'smooth', block: 'start' });
             });
 
-            // Botões de IA/Foto (Agora o rápido também inicia a câmera)
+            // Botões de IA/Foto (mantido)
             aiRegisterBtn.addEventListener('click', startAIDetection);
             aiRegisterBtnQuick.addEventListener('click', startAIDetection);
             aiCancelBtn.addEventListener('click', stopAIDetection);
             
-            // CORREÇÃO ESSENCIAL 1: Conexão do clique na IMAGEM com o input de arquivo no Modal de Edição
+            // Conexão do clique na IMAGEM com o input de arquivo no Modal de Edição
             editProductImg.addEventListener('click', () => editImageFileInput.click());
             editImageFileInput.addEventListener('change', handleEditImageUpload);
             
@@ -1084,7 +1143,7 @@
                 if (product) {
                     lastScannedProductId = product.id;
                     document.getElementById('scanned-product-name').textContent = product.name;
-                    // CORREÇÃO: Exibe o ID na tela de resultado do Scanner
+                    // Exibe o ID na tela de resultado do Scanner
                     document.getElementById('scanned-product-details').textContent = `ID: ${product.id} | Categoria: ${product.category} | Mínimo: ${product.minAlertQty}`;
                     document.getElementById('scanned-product-qty').textContent = product.quantity;
                     
@@ -1102,7 +1161,6 @@
                 const config = { fps: 10, qrbox: { width: 250, height: 250 } };
                 
                 if (html5QrCode.isScanning) {
-                    // Se já estiver scaneando, apenas garante que os botões estão certos
                     return; 
                 }
 
