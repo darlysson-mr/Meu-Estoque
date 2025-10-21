@@ -345,6 +345,20 @@
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
 
+            // --- REGISTRO DO SERVICE WORKER (PWA) ---
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('service-worker.js')
+                        .then(registration => {
+                            console.log('✅ Service Worker (PWA) registrado com sucesso!', registration);
+                        })
+                        .catch(error => {
+                            console.error('❌ Falha ao registrar Service Worker:', error);
+                        });
+                });
+            }
+            // --- FIM DO REGISTRO ---
+
             // Elementos de Cadastro
             const productNameInput = document.getElementById('product-name');
             const productQtyInput = document.getElementById('product-qty');
@@ -1042,7 +1056,7 @@
                 const ctx = aiCanvas.getContext('2d');
                 aiCanvas.width = aiVideo.videoWidth;
                 aiCanvas.height = aiVideo.videoHeight;
-                ctx.drawImage(aiVideo, 0, 0, aiCanvas.width, aiCanvas.height);
+                ctx.drawImage(aiVideo, 0, 0, aiCanvas.width, aiVideo.height);
                 currentCapturedImageBase64 = aiCanvas.toDataURL('image/jpeg', 0.8);
                 imagePreview.src = currentCapturedImageBase64;
                 imagePreviewContainer.classList.remove('hidden');
