@@ -5,7 +5,12 @@ const CACHE_NAME = 'stock-control-v1';
 const urlsToCache = [
     'index.html',
     'manifest.json',
-    'favicon.png',
+    // Ícones e Imagens Corrigidos
+    'android-chrome-192x192.png',
+    'android-chrome-512x512.png',
+    'apple-touch-icon.png',
+    'favicon-32x32.png',
+    'favicon-16x16.png',
     // Bibliotecas externas usadas pelo app
     'https://cdn.tailwindcss.com',
     'https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js',
