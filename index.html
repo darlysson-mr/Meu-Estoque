@@ -65,7 +65,7 @@
 
         #label-preview-content {
             background: white;
-            border: 2px dashed #eee;
+            border: 1px solid #eee;
             padding: 24px;
             border-radius: 16px;
             margin-bottom: 24px;
@@ -84,11 +84,10 @@
         #print-qrcode-wrapper img {
             display: block;
             margin: 0 auto;
-            width: 160px;
-            height: 160px;
+            width: 180px;
+            height: 180px;
         }
 
-        /* Loading indicator for QR */
         .qr-loader {
             width: 40px;
             height: 40px;
@@ -99,6 +98,12 @@
             margin: 60px auto;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media print {
+            body * { visibility: hidden; }
+            #label-preview-content, #label-preview-content * { visibility: visible; }
+            #label-preview-content { position: absolute; left: 0; top: 0; width: 100%; border: none; }
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen pb-10">
@@ -108,15 +113,15 @@
         <div class="preview-card fade-in">
             <div id="label-preview-content">
                 <p style="font-size: 10px; color: #e91e63; font-weight: 900; letter-spacing: 2px; margin-bottom: 8px; text-transform: uppercase;">Estoque Pro</p>
-                <h2 id="print-name" style="font-size: 18px; font-weight: 900; margin-bottom: 12px; color: #000; text-transform: uppercase; line-height: 1.2;">NOME DO PRODUTO</h2>
-                <div id="print-qrcode-wrapper" style="display: flex; justify-content: center; margin: 15px auto; padding: 10px; background: white; min-height: 180px; align-items: center;">
+                <h2 id="print-name" style="font-size: 18px; font-weight: 900; margin-bottom: 12px; color: #000; text-transform: uppercase; line-height: 1.2;">NOME</h2>
+                <div id="print-qrcode-wrapper" style="display: flex; justify-content: center; margin: 15px auto; min-height: 180px; align-items: center;">
                     <!-- QR Code via API será carregado aqui -->
                 </div>
-                <p id="print-id" style="font-size: 14px; font-weight: 900; color: #000; font-family: monospace; letter-spacing: 1px;">ID: 000000</p>
+                <p id="print-id" style="font-size: 14px; font-weight: 900; color: #000; font-family: monospace;">ID: 000000</p>
             </div>
             <div class="space-y-3">
-                <button id="btn-execute-print" onclick="executePrint()" class="w-full bg-primary-pink text-white py-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-2 uppercase tracking-widest touch-btn disabled:opacity-50" disabled>
-                    <i data-lucide="printer" class="w-5 h-5"></i> Aguarde...
+                <button id="btn-execute-print" onclick="executePrint()" class="w-full bg-primary-pink text-white py-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-2 uppercase tracking-widest touch-btn disabled:opacity-50">
+                    <i data-lucide="printer" class="w-5 h-5"></i> Imprimir / PDF
                 </button>
                 <button onclick="closeQrModal()" class="w-full text-gray-400 py-2 font-bold text-[11px] uppercase tracking-widest">Sair</button>
             </div>
@@ -299,7 +304,7 @@
 
     <script>
         let products = [];
-        const DB_KEY = 'stock_pro_master_db_v7'; // Nova versão para limpar lixo
+        const DB_KEY = 'stock_pro_master_db_v8'; 
         let categories = JSON.parse(localStorage.getItem('stock_pro_cats')) || ['Geral', 'Cozinha', 'Limpeza', 'Alimentos'];
         let selectedProduct = null;
         let currentPhoto = null;
@@ -325,10 +330,9 @@
                 localStorage.setItem(DB_KEY, JSON.stringify(products));
                 updateBadge();
             } catch (e) {
-                // Se a memória encher, removemos imagens de produtos mais antigos
                 console.warn("Storage full, cleaning images...");
                 if (products.length > 5) {
-                    for(let i = products.length - 1; i > products.length - 5; i--) {
+                    for(let i = products.length - 1; i > Math.max(0, products.length - 10); i--) {
                         products[i].image = null;
                     }
                     localStorage.setItem(DB_KEY, JSON.stringify(products));
@@ -585,7 +589,6 @@
             document.getElementById('modal-ai').style.display = 'none';
         }
 
-        // COMPRESSÃO AGRESSIVA PARA ECONOMIZAR MEMÓRIA
         function compressImage(base64Str, maxWidth = 120, quality = 0.4) {
             return new Promise((resolve) => {
                 const img = new Image();
@@ -602,39 +605,34 @@
             });
         }
 
-        // NOVO GERADOR DE QR CODE VIA API (MAIS FIÁVEL PARA IMPRESSÃO)
+        // NOVO GERADOR: Carrega instantaneamente no Modal
         function prepareQRPreview() {
             if (!selectedProduct) return;
             const modal = document.getElementById('qr-preview-modal');
             const qrWrapper = document.getElementById('print-qrcode-wrapper');
             const btnPrint = document.getElementById('btn-execute-print');
             
-            btnPrint.disabled = true;
-            btnPrint.innerHTML = `<span class="animate-spin mr-2">◌</span> Carregando...`;
-            qrWrapper.innerHTML = `<div class="qr-loader"></div>`;
-            
+            // UI Update
             document.getElementById('print-name').innerText = selectedProduct.name;
             document.getElementById('print-id').innerText = "ID: " + selectedProduct.id;
+            qrWrapper.innerHTML = `<div class="qr-loader"></div>`;
             modal.style.display = 'flex';
             
-            // Usando API externa que retorna uma IMAGEM REAL (PNG)
-            const qrUrl = `https://quickchart.io/qr?text=${selectedProduct.id}&size=200&margin=1`;
+            // API de QR Code que retorna imagem pura
+            const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(selectedProduct.id)}&size=200&margin=1`;
             
             const img = new Image();
+            img.crossOrigin = "anonymous";
             img.onload = () => {
-                qrWrapper.innerHTML = `<img src="${qrUrl}" id="final-qr-img" style="width:160px; height:160px;">`;
-                btnPrint.disabled = false;
-                btnPrint.innerHTML = `<i data-lucide="printer" class="w-5 h-5 mr-2"></i> Abrir Impressão`;
+                qrWrapper.innerHTML = `<img src="${qrUrl}" id="final-qr-img" style="width:180px; height:180px; display:block;">`;
                 lucide.createIcons();
-            };
-            img.onerror = () => {
-                qrWrapper.innerHTML = `<p class="text-red-500 text-xs font-bold">Erro ao gerar QR Code. Verifique a internet.</p>`;
             };
             img.src = qrUrl;
         }
 
         function closeQrModal() { document.getElementById('qr-preview-modal').style.display = 'none'; }
 
+        // CORREÇÃO DEFINITIVA PARA IMPRESSÃO MOBILE
         function executePrint() {
             const content = document.getElementById('label-preview-content').innerHTML;
             const printWindow = window.open('', '_blank');
@@ -642,29 +640,30 @@
             printWindow.document.write(`
                 <html>
                     <head>
-                        <title>Imprimir</title>
+                        <title>Etiqueta ${selectedProduct.id}</title>
                         <style>
-                            @page { margin: 0; size: auto; }
+                            @page { margin: 0; }
                             body { 
-                                font-family: sans-serif; 
+                                font-family: -apple-system, system-ui, sans-serif; 
                                 text-align: center; margin: 0; padding: 20px; 
                                 display: flex; flex-direction: column; align-items: center; 
                                 justify-content: center;
                             }
-                            .box { border: 1px dashed #000; padding: 20px; border-radius: 10px; width: 280px; }
-                            img { display: block; width: 160px; height: 160px; margin: 15px auto; }
-                            h2 { margin: 5px 0; font-size: 20px; font-weight: 900; }
+                            #label-box { border: 1px dashed #ccc; padding: 20px; border-radius: 12px; width: 280px; display: inline-block; }
+                            img { display: block; width: 180px; height: 180px; margin: 15px auto; }
+                            h2 { margin: 5px 0; font-size: 20px; font-weight: 900; text-transform: uppercase; }
                             p { margin: 5px 0; font-weight: bold; }
                         </style>
                     </head>
                     <body>
-                        <div class="box">${content}</div>
+                        <div id="label-box">${content}</div>
                         <script>
+                            // Aguarda carregar a imagem na nova janela antes de abrir o PDF/Impressora
                             window.onload = function() {
                                 setTimeout(() => { 
                                     window.print();
-                                    setTimeout(() => window.close(), 500);
-                                }, 800);
+                                    // Comentar window.close() para iOS funcionar melhor
+                                }, 1000);
                             };
                         <\/script>
                     </body>
