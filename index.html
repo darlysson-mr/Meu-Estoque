@@ -54,18 +54,6 @@
             padding: 16px;
         }
 
-        #qr-preview-modal { z-index: 6000; }
-
-        .preview-card {
-            background: white;
-            padding: 24px;
-            border-radius: 28px;
-            width: 100%;
-            max-width: 360px;
-            text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-
         #label-preview-content {
             background: white;
             border: 2px dashed #eee;
@@ -74,7 +62,7 @@
             margin-bottom: 24px;
         }
 
-        /* Melhora usabilidade mobile */
+        /* Melhorias Mobile */
         input, select { font-size: 16px !important; }
         
         .touch-btn {
@@ -106,91 +94,82 @@
 </head>
 <body class="flex flex-col min-h-screen pb-10">
 
-    <div id="toast">Item Salvo!</div>
+    <div id="toast">Aviso</div>
 
-    <!-- Modal de Impressão -->
+    <!-- Modal QR Code -->
     <div id="qr-preview-modal" class="modal-overlay">
-        <div class="preview-card fade-in">
+        <div class="bg-white p-6 rounded-[2rem] w-full max-w-sm text-center shadow-2xl fade-in">
             <div id="label-preview-content">
-                <p style="font-size: 10px; color: #e91e63; font-weight: 900; letter-spacing: 2px; margin-bottom: 8px; font-family: sans-serif; text-transform: uppercase;">Estoque Pro</p>
-                <h2 id="print-name" style="font-size: 18px; font-weight: 900; margin-bottom: 12px; color: #000; text-transform: uppercase; font-family: sans-serif; line-height: 1.2;">NOME</h2>
-                <div id="print-qrcode-wrapper" style="display: flex; justify-content: center; margin: 15px auto; padding: 10px; background: white; min-height: 180px;"></div>
-                <p id="print-id" style="font-size: 14px; font-weight: 900; color: #000; font-family: monospace; letter-spacing: 1px;">ID: 000000</p>
+                <p style="font-size: 10px; color: #e91e63; font-weight: 900; letter-spacing: 2px; margin-bottom: 8px; text-transform: uppercase;">Estoque Pro</p>
+                <h2 id="print-name" style="font-size: 18px; font-weight: 900; margin-bottom: 12px; color: #000; text-transform: uppercase;">NOME</h2>
+                <div id="print-qrcode-wrapper" style="display: flex; justify-content: center; margin: 15px auto; min-height: 180px;"></div>
+                <p id="print-id" style="font-size: 14px; font-weight: 900; color: #000; font-family: monospace;">ID: 000000</p>
             </div>
             <div class="space-y-3">
-                <button onclick="executePrint()" class="w-full bg-primary-pink text-white py-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-2 uppercase tracking-widest touch-btn">
-                    <i data-lucide="printer" class="w-5 h-5"></i> Abrir Impressão
+                <button onclick="executePrint()" class="w-full bg-primary-pink text-white py-4 rounded-2xl font-black text-sm uppercase touch-btn">
+                    Imprimir Etiqueta
                 </button>
-                <button onclick="closeQrModal()" class="w-full text-gray-400 py-2 font-bold text-[11px] uppercase tracking-widest">Voltar</button>
+                <button onclick="document.getElementById('qr-preview-modal').style.display='none'" class="w-full text-gray-400 font-bold text-[10px] uppercase">Fechar</button>
             </div>
         </div>
     </div>
 
-    <div id="modal-tags" class="modal-overlay">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-6 fade-in shadow-2xl">
-            <h3 class="text-sm font-black text-gray-800 mb-4 uppercase tracking-widest">Categorias</h3>
-            <div class="flex gap-2 mb-4">
-                <input type="text" id="new-tag-input" placeholder="Nova..." class="flex-grow bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 outline-none">
-                <button onclick="addNewTag()" class="bg-primary-pink text-white px-4 rounded-xl shadow-md touch-btn"><i data-lucide="plus"></i></button>
-            </div>
-            <div id="tags-list-container" class="space-y-2 max-h-48 overflow-y-auto pr-1 mb-6 hide-scroll"></div>
-            <button onclick="closeTagsManager()" class="w-full bg-gray-100 text-gray-500 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest touch-btn">Voltar</button>
-        </div>
-    </div>
-
-    <header class="bg-white shadow-sm sticky top-0 z-40 w-full">
-        <div class="px-4 py-4 flex justify-between items-center max-w-4xl mx-auto">
-            <h1 class="text-xl font-black text-primary-pink flex items-center tracking-tighter">
-                <i data-lucide="package" class="mr-2 w-5 h-5"></i> ESTOQUE
-            </h1>
-            <div class="flex items-center gap-2">
-                <button onclick="filterLowStock()" class="relative p-2 text-gray-400">
-                    <i data-lucide="bell" class="w-6 h-6"></i>
-                    <span id="alert-badge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold">0</span>
-                </button>
-                <button onclick="openTagsManager()" class="p-2 text-gray-400"><i data-lucide="settings" class="w-6 h-6"></i></button>
-            </div>
+    <!-- Header Principal -->
+    <header class="bg-white shadow-sm sticky top-0 z-40 w-full px-4 py-4 flex justify-between items-center">
+        <h1 class="text-xl font-black text-primary-pink flex items-center tracking-tighter">
+            <i data-lucide="package" class="mr-2 w-5 h-5"></i> ESTOQUE
+        </h1>
+        <div class="flex items-center gap-2">
+            <button onclick="filterLowStock()" class="relative p-2 text-gray-400">
+                <i data-lucide="bell" class="w-6 h-6"></i>
+                <span id="alert-badge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold">0</span>
+            </button>
+            <button onclick="openTagsManager()" class="p-2 text-gray-400"><i data-lucide="settings" class="w-6 h-6"></i></button>
         </div>
     </header>
 
     <main class="flex-grow p-4 max-w-4xl mx-auto w-full space-y-4">
+        
+        <!-- Atalhos/Estatísticas -->
         <section class="grid grid-cols-4 gap-2">
-            <button onclick="openAiModal()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 active:bg-pink-50">
+            <button onclick="triggerFileInput()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 active:bg-pink-50">
                 <div class="p-2 bg-pink-100 rounded-full mb-1 text-primary-pink"><i data-lucide="camera" class="w-5 h-5"></i></div>
                 <span class="text-[8px] font-black text-gray-400 uppercase">Foto</span>
             </button>
             <button onclick="filterLowStock()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 active:bg-red-50">
                 <div class="p-2 bg-red-100 rounded-full mb-1 text-red-600"><i data-lucide="alert-triangle" class="w-5 h-5"></i></div>
-                <span class="text-[8px] font-black text-gray-400 uppercase">Alerta</span>
+                <span class="text-[8px] font-black text-gray-400 uppercase">Crítico</span>
             </button>
             <button onclick="openTagsManager()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 active:bg-orange-50">
                 <div class="p-2 bg-orange-100 rounded-full mb-1 text-orange-600"><i data-lucide="tag" class="w-5 h-5"></i></div>
                 <span class="text-[8px] font-black text-gray-400 uppercase">Tags</span>
             </button>
-            <button onclick="renderInventory()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 active:bg-gray-50">
+            <button onclick="renderInventory()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50">
                 <div class="p-2 bg-gray-100 rounded-full mb-1 text-gray-600"><i data-lucide="list" class="w-5 h-5"></i></div>
                 <span class="text-[8px] font-black text-gray-400 uppercase">Todos</span>
             </button>
         </section>
 
+        <!-- Filtro de Categorias -->
         <div id="category-chips" class="flex gap-2 overflow-x-auto hide-scroll py-1"></div>
 
-        <section class="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 w-full">
+        <!-- Formulário de Cadastro (Tua Estrutura) -->
+        <section class="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100">
             <h2 class="text-[10px] font-black mb-4 flex items-center uppercase tracking-widest text-gray-400">
-                <i data-lucide="plus-circle" class="mr-2 w-4 h-4 text-primary-pink"></i> Novo Item
+                <i data-lucide="plus-circle" class="mr-2 w-4 h-4 text-primary-pink"></i> Novo Cadastro
             </h2>
             
             <div class="space-y-4">
                 <div class="flex items-center gap-4">
-                    <div id="image-placeholder" onclick="triggerFileInput('main')" class="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center shrink-0">
+                    <div id="image-placeholder" onclick="triggerFileInput()" class="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center shrink-0">
                         <i data-lucide="image-plus" class="w-6 h-6 text-gray-300"></i>
                     </div>
                     <div id="image-preview-container" class="hidden relative w-20 h-20 shrink-0">
-                        <img id="image-preview" src="" class="w-full h-full object-cover rounded-2xl">
+                        <img id="image-preview" src="" class="w-full h-full object-cover rounded-2xl shadow-sm">
                         <button onclick="clearImage()" class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1"><i data-lucide="x" class="w-3 h-3"></i></button>
                     </div>
                     <div class="flex-grow">
-                        <input type="text" id="prod-name" placeholder="Nome do produto..." class="w-full bg-gray-50 border-none rounded-xl p-3 outline-none focus:ring-2 focus:ring-primary-pink mb-2">
+                        <input type="text" id="prod-name" placeholder="Nome do item..." class="w-full bg-gray-50 border-none rounded-xl p-3 outline-none mb-2">
                         <select id="prod-category" class="w-full bg-gray-50 border-none rounded-xl p-3 outline-none"></select>
                     </div>
                 </div>
@@ -198,43 +177,39 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-gray-50 rounded-xl p-3">
                         <label class="text-[9px] font-black text-gray-400 uppercase">Estoque</label>
-                        <input type="number" id="prod-qty" value="1" inputmode="numeric" class="w-full bg-transparent font-black text-lg outline-none">
+                        <input type="number" id="prod-qty" value="0" inputmode="numeric" class="w-full bg-transparent font-black text-lg outline-none">
                     </div>
                     <div class="bg-gray-50 rounded-xl p-3">
-                        <label class="text-[9px] font-black text-gray-400 uppercase">Mínimo</label>
+                        <label class="text-[9px] font-black text-gray-400 uppercase">Alerta</label>
                         <input type="number" id="prod-alert" value="2" inputmode="numeric" class="w-full bg-transparent font-black text-lg outline-none">
                     </div>
                 </div>
                 
-                <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileUpload(event, 'main')">
-                <input type="file" id="edit-file-input" accept="image/*" class="hidden" onchange="handleFileUpload(event, 'edit')">
+                <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFile(event)">
                 
-                <button onclick="saveProduct()" class="w-full bg-primary-pink text-white font-black py-4 rounded-2xl shadow-lg uppercase text-[12px] tracking-widest touch-btn">
-                    Cadastrar Item
+                <button id="btn-save" onclick="saveProduct()" class="w-full bg-primary-pink text-white font-black py-4 rounded-2xl shadow-lg uppercase text-[12px] tracking-widest touch-btn">
+                    Confirmar Cadastro
                 </button>
             </div>
         </section>
 
+        <!-- Barra de Pesquisa -->
         <div class="relative w-full">
-            <input type="text" id="global-search" placeholder="Pesquisar..." class="w-full bg-white border-none shadow-sm rounded-2xl p-4 pl-12 outline-none">
+            <input type="text" id="global-search" placeholder="Pesquisar no estoque..." class="w-full bg-white border-none shadow-sm rounded-2xl p-4 pl-12 outline-none">
             <i data-lucide="search" class="absolute left-4 top-4 text-gray-300 w-5 h-5"></i>
         </div>
 
-        <div id="inventory-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-24"></div>
+        <!-- Lista de Produtos -->
+        <div id="inventory-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3 pb-24"></div>
     </main>
 
-    <!-- Modal Edição -->
+    <!-- Modal Edição (Tua Estrutura) -->
     <div id="modal-edit" class="modal-overlay">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-6 fade-in shadow-2xl max-h-[95vh] overflow-y-auto hide-scroll">
+        <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-6 fade-in shadow-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 <button id="btn-delete" class="p-3 bg-red-50 text-red-500 rounded-xl"><i data-lucide="trash-2" class="w-5 h-5"></i></button>
-                <div class="relative">
-                    <div onclick="triggerFileInput('edit')" class="w-24 h-24 rounded-3xl overflow-hidden shadow-lg border-2 border-white">
-                        <img id="edit-img" class="w-full h-full object-cover">
-                    </div>
-                    <div class="absolute -bottom-1 -right-1 bg-primary-pink text-white p-2 rounded-full">
-                        <i data-lucide="camera" class="w-3 h-3"></i>
-                    </div>
+                <div class="w-24 h-24 rounded-3xl overflow-hidden shadow-lg border-2 border-white">
+                    <img id="edit-img" class="w-full h-full object-cover">
                 </div>
                 <button onclick="prepareQRPreview()" class="p-3 bg-pink-50 text-primary-pink rounded-xl"><i data-lucide="printer" class="w-5 h-5"></i></button>
             </div>
@@ -242,451 +217,232 @@
             <div class="space-y-3 mb-6">
                 <div class="bg-gray-50 p-3 rounded-2xl">
                     <label class="text-[9px] font-black text-gray-300 uppercase">Produto</label>
-                    <input type="text" id="edit-name-input" class="w-full bg-transparent border-none p-1 font-black text-gray-700 outline-none">
+                    <input type="text" id="edit-name" class="w-full bg-transparent border-none p-1 font-black outline-none">
                 </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div class="bg-gray-50 p-3 rounded-2xl">
-                        <label class="text-[9px] font-black text-gray-300 uppercase">Categoria</label>
-                        <select id="edit-cat-select" class="w-full bg-transparent border-none p-1 font-bold text-xs outline-none"></select>
+                <div class="bg-gray-50 p-5 rounded-3xl text-center">
+                    <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Saldo Atual</span>
+                    <div id="edit-qty-display" class="text-6xl font-black text-primary-pink my-3">0</div>
+                    <div class="flex justify-center gap-6 mt-4">
+                        <button onclick="adjustEditQty(-1)" class="w-14 h-14 bg-red-500 text-white rounded-2xl shadow-lg font-black text-2xl">-</button>
+                        <button onclick="adjustEditQty(1)" class="w-14 h-14 bg-emerald-500 text-white rounded-2xl shadow-lg font-black text-2xl">+</button>
                     </div>
-                    <div class="bg-gray-50 p-3 rounded-2xl">
-                        <label class="text-[9px] font-black text-gray-300 uppercase">Mínimo</label>
-                        <input type="number" id="edit-alert-input" inputmode="numeric" class="w-full bg-transparent border-none p-1 font-black outline-none">
-                    </div>
-                </div>
-            </div>
-
-            <div class="bg-gray-50 p-5 rounded-3xl text-center mb-6 border border-gray-100">
-                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Saldo Atual</span>
-                <div id="edit-qty-display" class="text-6xl font-black text-primary-pink my-3">0</div>
-                
-                <div class="flex items-center gap-3">
-                    <button onclick="adjustTempByValue(-1)" class="w-14 h-14 flex items-center justify-center bg-danger-red text-white rounded-2xl shadow-lg active:scale-90">
-                        <i data-lucide="minus" class="w-6 h-6"></i>
-                    </button>
-                    <div class="flex-grow bg-white rounded-2xl p-2 shadow-inner border border-gray-100">
-                        <label class="text-[8px] font-black text-gray-300 uppercase block mb-1">Passo</label>
-                        <input type="number" id="step-value" value="1" inputmode="numeric" class="w-full text-center text-2xl font-black bg-transparent outline-none">
-                    </div>
-                    <button onclick="adjustTempByValue(1)" class="w-14 h-14 flex items-center justify-center bg-success-green text-white rounded-2xl shadow-lg active:scale-90">
-                        <i data-lucide="plus" class="w-6 h-6"></i>
-                    </button>
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
-                <button onclick="closeEditModal()" class="w-full bg-gray-100 text-gray-400 font-black py-4 rounded-2xl uppercase text-[11px] touch-btn">Sair</button>
-                <button onclick="saveEditChanges()" class="w-full bg-primary-pink text-white font-black py-4 rounded-2xl shadow-lg uppercase text-[11px] touch-btn">Guardar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Câmera AI -->
-    <div id="modal-ai" class="modal-overlay">
-        <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-4 text-center">
-            <div class="bg-black rounded-[2rem] overflow-hidden aspect-square mb-4">
-                <video id="ai-video" autoplay playsinline class="w-full h-full object-cover"></video>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="closeAiModal()" class="flex-grow bg-gray-100 py-4 rounded-xl font-bold text-gray-500 uppercase text-[10px] touch-btn">Cancelar</button>
-                <button onclick="captureFromAi()" class="flex-[2] bg-primary-pink text-white py-4 rounded-xl font-black uppercase text-[10px] touch-btn">Captar Foto</button>
+                <button onclick="document.getElementById('modal-edit').style.display='none'" class="w-full bg-gray-100 text-gray-400 font-black py-4 rounded-2xl uppercase text-[11px]">Sair</button>
+                <button onclick="confirmEdit()" class="w-full bg-primary-pink text-white font-black py-4 rounded-2xl shadow-lg uppercase text-[11px]">Salvar</button>
             </div>
         </div>
     </div>
 
     <script>
-        let products = [];
-        const DB_KEY = 'stock_pro_master_db_v6';
-        let categories = JSON.parse(localStorage.getItem('stock_pro_cats')) || ['Geral', 'Cozinha', 'Limpeza', 'Alimentos'];
-        let selectedProduct = null;
+        let products = JSON.parse(localStorage.getItem('stock_v8')) || [];
+        let categories = JSON.parse(localStorage.getItem('cats_v8')) || ['Geral', 'Cozinha', 'Limpeza'];
         let currentPhoto = null;
-        let tempQty = 0;
-        let activeFilterTag = "TODOS";
-        let colorResetTimeout = null;
-
-        const loadProducts = () => {
-            const stored = localStorage.getItem(DB_KEY);
-            products = stored ? JSON.parse(stored) : [];
-        };
+        let activeId = null;
 
         window.onload = () => {
-            loadProducts();
-            lucide.createIcons();
-            renderCategories();
             renderInventory();
-            initDeleteHandler();
+            renderCategoryChips();
+            fillSelects();
+            lucide.createIcons();
+            initDelete();
         };
-
-        function saveDb() {
-            localStorage.setItem(DB_KEY, JSON.stringify(products));
-            updateBadge();
-        }
 
         function showToast(msg) {
             const t = document.getElementById('toast');
             t.innerText = msg;
             t.style.display = 'block';
-            setTimeout(() => { t.style.display = 'none'; }, 2000);
+            setTimeout(() => t.style.display = 'none', 2000);
         }
 
-        function updateBadge() {
-            const lowCount = products.filter(p => p.qty <= (p.alert || 0)).length;
-            const b = document.getElementById('alert-badge');
-            if(b) {
-                b.innerText = lowCount;
-                lowCount > 0 ? b.classList.remove('hidden') : b.classList.add('hidden');
-            }
+        function fillSelects() {
+            const sel = document.getElementById('prod-category');
+            sel.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
         }
 
-        function renderCategories() {
-            const selects = [document.getElementById('prod-category'), document.getElementById('edit-cat-select')];
-            selects.forEach(s => {
-                if (s) s.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+        function triggerFileInput() { document.getElementById('file-input').click(); }
+
+        async function handleFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            showToast("A processar...");
+            const reader = new FileReader();
+            reader.onload = async (ev) => {
+                // Compressão agressiva para mobile
+                currentPhoto = await compress(ev.target.result, 400, 0.6);
+                document.getElementById('image-preview').src = currentPhoto;
+                document.getElementById('image-placeholder').classList.add('hidden');
+                document.getElementById('image-preview-container').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function compress(src, max, q) {
+            return new Promise(res => {
+                const img = new Image();
+                img.src = src;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    if(w > max) { h = Math.round((h * max) / w); w = max; }
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    res(canvas.toDataURL('image/jpeg', q));
+                };
             });
-            localStorage.setItem('stock_pro_cats', JSON.stringify(categories));
-            renderCategoryChips();
-        }
-
-        function openTagsManager() {
-            document.getElementById('modal-tags').style.display = 'flex';
-            renderTagsList();
-        }
-        function closeTagsManager() { document.getElementById('modal-tags').style.display = 'none'; }
-
-        function renderTagsList() {
-            const container = document.getElementById('tags-list-container');
-            container.innerHTML = categories.map(cat => `
-                <div class="flex items-center justify-between bg-gray-50 p-3 rounded-xl">
-                    <span class="text-[10px] font-black text-gray-600 uppercase">${cat}</span>
-                    <button onclick="deleteTag('${cat}')" class="text-red-300 p-2"><i data-lucide="x-circle" class="w-4 h-4"></i></button>
-                </div>
-            `).join('');
-            lucide.createIcons();
-        }
-
-        function addNewTag() {
-            const input = document.getElementById('new-tag-input');
-            const val = input.value.trim();
-            if(val && !categories.includes(val)) {
-                categories.push(val);
-                input.value = "";
-                renderCategories();
-                renderTagsList();
-            }
-        }
-
-        function deleteTag(cat) {
-            if(categories.length <= 1) return;
-            categories = categories.filter(c => c !== cat);
-            renderCategories();
-            renderTagsList();
-        }
-
-        function renderCategoryChips() {
-            const container = document.getElementById('category-chips');
-            const allCats = ["TODOS", ...categories];
-            container.innerHTML = allCats.map(cat => {
-                const isActive = activeFilterTag === cat;
-                return `
-                    <button onclick="filterByCategory('${cat}')" class="whitespace-nowrap px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition border ${isActive ? 'bg-primary-pink text-white border-primary-pink shadow-md' : 'bg-white text-gray-400 border-gray-100'}">
-                        ${cat}
-                    </button>
-                `;
-            }).join('');
-        }
-
-        function filterByCategory(cat) {
-            activeFilterTag = cat;
-            renderCategoryChips();
-            if (cat === "TODOS") renderInventory();
-            else renderSpecificList(products.filter(p => p.category === cat));
-        }
-
-        function renderInventory(filter = "") {
-            const term = filter.toLowerCase().trim();
-            const filtered = products.filter(p => p.name.toLowerCase().includes(term) || p.id.toLowerCase() === term);
-            renderSpecificList(filtered);
-            updateBadge();
-        }
-
-        function renderSpecificList(listToRender) {
-            const list = document.getElementById('inventory-list');
-            if(listToRender.length === 0) {
-                list.innerHTML = `<div class="col-span-full py-10 text-center text-gray-300 font-bold uppercase text-[10px] tracking-widest">Nenhum item</div>`;
-                return;
-            }
-            list.innerHTML = listToRender.map(p => {
-                const isLow = p.qty <= (p.alert || 0);
-                return `
-                <div onclick="openEditModal('${p.id}')" class="fade-in bg-white p-4 rounded-3xl shadow-sm border ${isLow ? 'border-red-200 bg-red-50/30' : 'border-gray-50'} flex items-center gap-4 active:scale-95 transition cursor-pointer">
-                    <div class="w-14 h-14 bg-gray-100 rounded-2xl overflow-hidden shrink-0 border border-gray-50">
-                        <img src="${p.image || 'https://via.placeholder.com/150'}" class="w-full h-full object-cover">
-                    </div>
-                    <div class="flex-grow overflow-hidden">
-                        <h4 class="font-black text-gray-800 uppercase text-[11px] truncate">${p.name}</h4>
-                        <span class="text-[9px] font-bold text-gray-300 uppercase">${p.category}</span>
-                    </div>
-                    <div class="text-right shrink-0">
-                        <div class="text-2xl font-black ${isLow ? 'text-red-600' : 'text-primary-pink'}">${p.qty}</div>
-                    </div>
-                </div>`;
-            }).join('');
-            lucide.createIcons();
-        }
-
-        function adjustTempByValue(direction) {
-            const display = document.getElementById('edit-qty-display');
-            const stepInput = document.getElementById('step-value');
-            const step = parseInt(stepInput.value) || 1;
-            tempQty = Math.max(0, tempQty + (direction * step));
-            display.innerText = tempQty;
-
-            if (colorResetTimeout) clearTimeout(colorResetTimeout);
-            display.style.color = direction > 0 ? '#10b981' : '#ef4444';
-
-            colorResetTimeout = setTimeout(() => {
-                display.style.color = '#e91e63';
-            }, 400);
         }
 
         function saveProduct() {
-            const nameEl = document.getElementById('prod-name');
-            const qtyEl = document.getElementById('prod-qty');
-            const alertEl = document.getElementById('prod-alert');
-            const catEl = document.getElementById('prod-category');
+            const name = document.getElementById('prod-name').value.trim();
+            const qty = parseInt(document.getElementById('prod-qty').value) || 0;
+            const alert = parseInt(document.getElementById('prod-alert').value) || 0;
+            const cat = document.getElementById('prod-category').value;
 
-            const name = nameEl.value.trim();
-            if(!name) {
-                showToast("Dê um nome ao produto!");
-                return;
-            }
+            if(!name) return showToast("Digite o nome!");
 
-            const shortId = Math.random().toString(36).substr(2, 6).toUpperCase();
-            
-            const newProduct = {
-                id: shortId,
-                name: name,
-                category: catEl.value,
-                qty: parseInt(qtyEl.value) || 0,
-                alert: parseInt(alertEl.value) || 0,
+            const btn = document.getElementById('btn-save');
+            btn.disabled = true;
+            btn.innerText = "A GUARDAR...";
+
+            const newItem = {
+                id: Math.random().toString(36).substr(2, 6).toUpperCase(),
+                name, qty, alert, category: cat,
                 image: currentPhoto
             };
 
-            products.unshift(newProduct);
-            saveDb();
-            
-            // Limpa campos
-            nameEl.value = ""; 
-            qtyEl.value = "1";
-            alertEl.value = "2";
-            clearImage(); 
-            
-            renderInventory();
-            showToast("Produto Cadastrado!");
+            try {
+                products.unshift(newItem);
+                localStorage.setItem('stock_v8', JSON.stringify(products));
+                
+                // Reset
+                document.getElementById('prod-name').value = "";
+                document.getElementById('prod-qty').value = "0";
+                clearImage();
+                renderInventory();
+                showToast("Item Cadastrado!");
+            } catch (e) {
+                showToast("Memória cheia!");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Confirmar Cadastro";
+            }
         }
 
-        function openEditModal(id) {
-            selectedProduct = products.find(item => item.id === id);
-            tempQty = selectedProduct.qty;
-            document.getElementById('edit-name-input').value = selectedProduct.name;
-            document.getElementById('edit-cat-select').value = selectedProduct.category;
-            document.getElementById('edit-alert-input').value = selectedProduct.alert || 0;
-            document.getElementById('edit-qty-display').innerText = tempQty;
-            document.getElementById('edit-img').src = selectedProduct.image || 'https://via.placeholder.com/150';
-            resetDeleteButton();
-            document.getElementById('modal-edit').style.display = 'flex';
+        function renderInventory(term = "") {
+            const list = document.getElementById('inventory-list');
+            const search = term.toLowerCase();
+            const filtered = products.filter(p => p.name.toLowerCase().includes(search));
+
+            list.innerHTML = filtered.map(p => {
+                const isLow = p.qty <= p.alert;
+                return `
+                <div onclick="openEdit('${p.id}')" class="bg-white p-4 rounded-3xl flex items-center gap-4 border ${isLow ? 'border-red-100 bg-red-50' : 'border-gray-50'} active:scale-95 transition">
+                    <img src="${p.image || 'https://via.placeholder.com/100'}" class="w-14 h-14 rounded-2xl object-cover bg-gray-50">
+                    <div class="flex-grow">
+                        <h4 class="font-black text-[11px] text-gray-800 uppercase truncate">${p.name}</h4>
+                        <span class="text-[9px] text-gray-300 font-bold uppercase">${p.category}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-2xl font-black ${isLow ? 'text-red-500' : 'text-primary-pink'}">${p.qty}</span>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            
+            const low = products.filter(p => p.qty <= p.alert).length;
+            const b = document.getElementById('alert-badge');
+            b.innerText = low;
+            low > 0 ? b.classList.remove('hidden') : b.classList.add('hidden');
             lucide.createIcons();
         }
 
-        function closeEditModal() { document.getElementById('modal-edit').style.display = 'none'; }
-
-        function saveEditChanges() {
-            const idx = products.findIndex(p => p.id === selectedProduct.id);
-            if(idx !== -1) {
-                products[idx].name = document.getElementById('edit-name-input').value;
-                products[idx].category = document.getElementById('edit-cat-select').value;
-                products[idx].alert = parseInt(document.getElementById('edit-alert-input').value) || 0;
-                products[idx].qty = tempQty;
-                saveDb(); 
-                renderInventory();
-                showToast("Alterações Salvas!");
-            }
-            closeEditModal();
+        function openEdit(id) {
+            activeId = id;
+            const p = products.find(x => x.id === id);
+            document.getElementById('edit-name').value = p.name;
+            document.getElementById('edit-qty-display').innerText = p.qty;
+            document.getElementById('edit-img').src = p.image || 'https://via.placeholder.com/100';
+            document.getElementById('modal-edit').style.display = 'flex';
+            resetDelBtn();
         }
 
-        function initDeleteHandler() {
+        function adjustEditQty(val) {
+            const el = document.getElementById('edit-qty-display');
+            let n = parseInt(el.innerText) + val;
+            el.innerText = Math.max(0, n);
+        }
+
+        function confirmEdit() {
+            const p = products.find(x => x.id === activeId);
+            p.name = document.getElementById('edit-name').value;
+            p.qty = parseInt(document.getElementById('edit-qty-display').innerText);
+            localStorage.setItem('stock_v8', JSON.stringify(products));
+            renderInventory();
+            document.getElementById('modal-edit').style.display = 'none';
+            showToast("Atualizado!");
+        }
+
+        function initDelete() {
             const btn = document.getElementById('btn-delete');
             btn.onclick = () => {
-                if (btn.getAttribute('data-confirm') !== 'true') {
-                    btn.setAttribute('data-confirm', 'true');
+                if(btn.dataset.confirm !== '1') {
+                    btn.dataset.confirm = '1';
                     btn.innerHTML = '<i data-lucide="check"></i>';
-                    btn.className = "p-3 bg-red-600 text-white rounded-xl";
+                    btn.classList.replace('bg-red-50', 'bg-red-600');
+                    btn.classList.replace('text-red-500', 'text-white');
                     lucide.createIcons();
-                    setTimeout(resetDeleteButton, 3000);
+                    setTimeout(resetDelBtn, 3000);
                 } else {
-                    products = products.filter(p => p.id !== selectedProduct.id);
-                    saveDb(); closeEditModal(); renderInventory();
-                    showToast("Item Excluído");
+                    products = products.filter(x => x.id !== activeId);
+                    localStorage.setItem('stock_v8', JSON.stringify(products));
+                    renderInventory();
+                    document.getElementById('modal-edit').style.display = 'none';
+                    showToast("Excluído");
                 }
             };
         }
 
-        function resetDeleteButton() {
+        function resetDelBtn() {
             const btn = document.getElementById('btn-delete');
-            if(!btn) return;
-            btn.setAttribute('data-confirm', 'false');
-            btn.className = "p-3 bg-red-50 text-red-500 rounded-xl";
+            btn.dataset.confirm = '0';
             btn.innerHTML = '<i data-lucide="trash-2"></i>';
+            btn.className = "p-3 bg-red-50 text-red-500 rounded-xl";
             lucide.createIcons();
-        }
-
-        function triggerFileInput(mode) {
-            if (mode === 'main') document.getElementById('file-input').click();
-            else document.getElementById('edit-file-input').click();
-        }
-
-        function handleFileUpload(e, mode) {
-            const f = e.target.files[0]; if(!f) return;
-            const r = new FileReader();
-            r.onload = async (ev) => { 
-                const compressed = await compressImage(ev.target.result); 
-                if (mode === 'main') {
-                    currentPhoto = compressed;
-                    showImagePreview();
-                } else {
-                    selectedProduct.image = compressed;
-                    document.getElementById('edit-img').src = compressed;
-                }
-            };
-            r.readAsDataURL(f);
-        }
-
-        function showImagePreview() {
-            document.getElementById('image-placeholder').classList.add('hidden');
-            document.getElementById('image-preview').src = currentPhoto;
-            document.getElementById('image-preview-container').classList.remove('hidden');
         }
 
         function clearImage() {
             currentPhoto = null;
             document.getElementById('image-preview-container').classList.add('hidden');
             document.getElementById('image-placeholder').classList.remove('hidden');
-        }
-
-        async function openAiModal() {
-            const v = document.getElementById('ai-video');
-            document.getElementById('modal-ai').style.display = 'flex';
-            try {
-                const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-                v.srcObject = s;
-            } catch (err) { showToast("Câmera Bloqueada"); }
-        }
-
-        async function captureFromAi() {
-            const v = document.getElementById('ai-video');
-            const c = document.createElement('canvas');
-            c.width = v.videoWidth; c.height = v.videoHeight;
-            c.getContext('2d').drawImage(v, 0, 0);
-            const compressed = await compressImage(c.toDataURL('image/webp', 0.6));
-            if (document.getElementById('modal-edit').style.display === 'flex') {
-                selectedProduct.image = compressed;
-                document.getElementById('edit-img').src = compressed;
-            } else {
-                currentPhoto = compressed;
-                showImagePreview();
-            }
-            closeAiModal();
-        }
-
-        function closeAiModal() {
-            const v = document.getElementById('ai-video');
-            if (v.srcObject) v.srcObject.getTracks().forEach(t => t.stop());
-            document.getElementById('modal-ai').style.display = 'none';
-        }
-
-        function compressImage(base64Str, maxWidth = 300, quality = 0.6) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                img.src = base64Str;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width, height = img.height;
-                    if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-                    canvas.width = width; canvas.height = height;
-                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/webp', quality));
-                };
-            });
+            document.getElementById('file-input').value = "";
         }
 
         function prepareQRPreview() {
-            if (!selectedProduct) return;
-            const modal = document.getElementById('qr-preview-modal');
-            const qrWrapper = document.getElementById('print-qrcode-wrapper');
+            const p = products.find(x => x.id === activeId);
+            const wrapper = document.getElementById('print-qrcode-wrapper');
+            wrapper.innerHTML = "";
+            document.getElementById('print-name').innerText = p.name;
+            document.getElementById('print-id').innerText = "ID: " + p.id;
+            document.getElementById('qr-preview-modal').style.display = 'flex';
             
-            // Importante: Limpar conteúdo anterior para evitar duplicidade ou erros no Canvas
-            qrWrapper.innerHTML = ""; 
-            document.getElementById('print-name').innerText = selectedProduct.name;
-            document.getElementById('print-id').innerText = "ID: " + selectedProduct.id;
-            
-            modal.style.display = 'flex';
-            
-            // Pequeno delay para garantir que o contêiner esteja visível antes de gerar o QR
             setTimeout(() => {
-                try {
-                    new QRCode(qrWrapper, { 
-                        text: selectedProduct.id, 
-                        width: 180, 
-                        height: 180, 
-                        colorDark : "#000000",
-                        colorLight : "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.H 
-                    });
-                } catch (e) {
-                    console.error("Erro ao gerar QR Code:", e);
-                }
+                new QRCode(wrapper, { text: p.id, width: 180, height: 180 });
             }, 300);
         }
 
-        function closeQrModal() { document.getElementById('qr-preview-modal').style.display = 'none'; }
-
-        function filterLowStock() {
-            activeFilterTag = null;
-            renderCategoryChips();
-            const low = products.filter(p => p.qty <= (p.alert || 0));
-            renderSpecificList(low);
+        function executePrint() {
+            const win = window.open('', '_blank');
+            const content = document.getElementById('label-preview-content').innerHTML;
+            win.document.write(`<html><body style="text-align:center;padding:50px;font-family:sans-serif;">${content}<script>setTimeout(()=> {window.print(); window.close();}, 500)<\/script></body></html>`);
+            win.document.close();
         }
 
-        function executePrint() {
-            const content = document.getElementById('label-preview-content').innerHTML;
-            const printWindow = window.open('', '_blank');
-            
-            printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Imprimir Etiqueta</title>
-                        <style>
-                            @page { margin: 0; size: auto; }
-                            body { 
-                                font-family: sans-serif; 
-                                text-align: center; margin: 0; padding: 20px; 
-                                display: flex; flex-direction: column; align-items: center; 
-                            }
-                            #label-container { border: 1px solid #eee; padding: 20px; width: 250px; }
-                            img { max-width: 100%; height: auto; }
-                        </style>
-                    </head>
-                    <body>
-                        <div id="label-container">${content}</div>
-                        <script>
-                            window.onload = function() {
-                                setTimeout(() => { window.print(); window.close(); }, 500);
-                            };
-                        <\/script>
-                    </body>
-                </html>
-            `);
-            printWindow.document.close();
+        function renderCategoryChips() {
+            const container = document.getElementById('category-chips');
+            const all = ["TODOS", ...categories];
+            container.innerHTML = all.map(c => `<button class="px-4 py-2 bg-white rounded-full text-[10px] font-black uppercase border border-gray-100 text-gray-400">${c}</button>`).join('');
         }
 
         document.getElementById('global-search').addEventListener('input', (e) => renderInventory(e.target.value));
