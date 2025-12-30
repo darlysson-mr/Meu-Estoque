@@ -85,6 +85,12 @@
         }
         
         .touch-btn:active { transform: scale(0.96); opacity: 0.9; }
+
+        /* Garante que o QR Code (img ou canvas) apareça na tela */
+        #print-qrcode-wrapper img {
+            display: block;
+            margin: 0 auto;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen pb-10">
@@ -479,7 +485,6 @@
                 products[idx].category = document.getElementById('edit-cat-select').value;
                 products[idx].alert = parseInt(document.getElementById('edit-alert-input').value) || 0;
                 products[idx].qty = tempQty;
-                // A imagem já é atualizada na seleção
                 saveDb(); renderInventory();
             }
             closeEditModal();
@@ -574,7 +579,6 @@
             document.getElementById('modal-ai').style.display = 'none';
         }
 
-        // FUNÇÃO DE COMPRESSÃO MELHORADA PARA POUPAR MEMÓRIA
         function compressImage(base64Str, maxWidth = 200, quality = 0.5) {
             return new Promise((resolve) => {
                 const img = new Image();
@@ -586,7 +590,6 @@
                     canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    // Usando WebP com qualidade baixa para ocupar mínimo espaço
                     resolve(canvas.toDataURL('image/webp', quality));
                 };
             });
@@ -598,7 +601,6 @@
             const modal = document.getElementById('qr-preview-modal');
             const qrWrapper = document.getElementById('print-qrcode-wrapper');
             
-            // Lógica robusta para limpar e regenerar o QR
             qrWrapper.innerHTML = "";
             document.getElementById('print-name').innerText = selectedProduct.name;
             document.getElementById('print-id').innerText = "ID: " + selectedProduct.id;
@@ -607,18 +609,31 @@
             
             setTimeout(() => {
                 try {
+                    // QRCodejs gera canvas por padrão. No mobile para impressão é melhor IMG.
                     new QRCode(qrWrapper, { 
                         text: selectedProduct.id, 
                         width: 180, 
                         height: 180, 
                         colorDark : "#000000",
                         colorLight : "#ffffff",
+                        useSVG: false, // Forçamos a geração interna para podermos converter
                         correctLevel: QRCode.CorrectLevel.M 
                     });
+
+                    // Verificamos se gerou canvas e garantimos que uma IMG seja criada
+                    setTimeout(() => {
+                        const canvas = qrWrapper.querySelector('canvas');
+                        const img = qrWrapper.querySelector('img');
+                        if (canvas && (!img || img.style.display === 'none')) {
+                            const dataUrl = canvas.toDataURL("image/png");
+                            qrWrapper.innerHTML = `<img src="${dataUrl}" style="width:180px; height:180px;">`;
+                        }
+                    }, 100);
+
                 } catch (e) {
                     qrWrapper.innerHTML = "<p style='color:red; font-size:10px;'>Erro ao gerar QR</p>";
                 }
-            }, 200);
+            }, 300);
         }
 
         function closeQrModal() { document.getElementById('qr-preview-modal').style.display = 'none'; }
@@ -631,6 +646,7 @@
         }
 
         function executePrint() {
+            // Pegamos o HTML atual da etiqueta, incluindo a imagem do QR Code
             const content = document.getElementById('label-preview-content').innerHTML;
             const printWindow = window.open('', '_blank', 'width=450,height=650');
             
@@ -645,21 +661,24 @@
                                 text-align: center; margin: 0; padding: 10px; 
                                 display: flex; flex-direction: column; align-items: center; 
                                 justify-content: center; min-height: 90vh;
+                                -webkit-print-color-adjust: exact;
+                                print-color-adjust: exact;
                             }
-                            #label-container { border: 1px dashed #ccc; padding: 20px; border-radius: 10px; width: 300px; display: inline-block; }
-                            img { max-width: 100%; height: auto; margin: 10px 0; }
-                            h2 { margin: 5px 0; text-transform: uppercase; font-size: 18px; line-height: 1.1; }
-                            p { margin: 5px 0; }
+                            #label-container { border: 1px dashed #ccc; padding: 20px; border-radius: 10px; width: 300px; display: inline-block; background: white; }
+                            img { display: block; max-width: 180px; height: auto; margin: 15px auto; }
+                            h2 { margin: 5px 0; text-transform: uppercase; font-size: 18px; line-height: 1.1; color: #000; font-weight: 900; }
+                            p { margin: 5px 0; color: #000; font-weight: 900; }
                         </style>
                     </head>
                     <body>
                         <div id="label-container">${content}</div>
                         <script>
                             window.onload = function() {
+                                // Pequeno delay para garantir que imagens carreguem na nova janela
                                 setTimeout(() => { 
                                     window.print(); 
                                     // window.close(); 
-                                }, 1000);
+                                }, 800);
                             };
                         <\/script>
                     </body>
