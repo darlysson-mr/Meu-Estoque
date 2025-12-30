@@ -35,9 +35,11 @@
             overflow-x: hidden;
             width: 100vw;
             -webkit-tap-highlight-color: transparent;
-            /* Evita zoom automático no iPhone ao clicar em inputs */
             touch-action: manipulation;
         }
+
+        /* Prevenir zoom no iOS */
+        input, select, textarea { font-size: 16px !important; }
         
         .fade-in { animation: fadeIn 0.2s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
@@ -57,8 +59,6 @@
             padding: 16px;
         }
 
-        #qr-preview-modal { z-index: 9999; }
-
         .preview-card {
             background: white;
             padding: 24px;
@@ -68,38 +68,22 @@
             text-align: center;
         }
 
-        /* Animações de Feedback de Quantidade */
-        @keyframes pulse-green {
-            0% { transform: scale(1); color: #10b981; }
-            50% { transform: scale(1.1); color: #059669; }
-            100% { transform: scale(1); color: #e91e63; }
-        }
-
-        @keyframes pulse-red {
-            0% { transform: scale(1); color: #ef4444; }
-            50% { transform: scale(1.1); color: #dc2626; }
-            100% { transform: scale(1); color: #e91e63; }
-        }
-
         .animate-plus { animation: pulse-green 0.4s ease-out; }
         .animate-minus { animation: pulse-red 0.4s ease-out; }
+        @keyframes pulse-green { 0% { color: #10b981; } 50% { transform: scale(1.1); } 100% { color: #e91e63; } }
+        @keyframes pulse-red { 0% { color: #ef4444; } 50% { transform: scale(1.1); } 100% { color: #e91e63; } }
 
         .touch-btn {
-            min-height: 52px;
+            min-height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
             cursor: pointer;
         }
+        .touch-btn:active { transform: scale(0.96); opacity: 0.8; }
         
-        .touch-btn:active { transform: scale(0.96); opacity: 0.9; }
-
-        /* Ajuste para o leitor de QR Code ficar circular/estilizado */
-        #reader video {
-            border-radius: 20px;
-            object-fit: cover;
-        }
+        #reader video { border-radius: 20px; object-fit: cover; }
     </style>
 </head>
 <body class="flex flex-col min-h-screen pb-10">
@@ -182,7 +166,7 @@
                         <img id="image-preview" src="" class="w-full h-full object-cover rounded-2xl">
                     </div>
                     <div class="flex-grow">
-                        <input type="text" id="prod-name" placeholder="Nome do produto..." class="w-full bg-gray-50 border-none rounded-xl p-3 outline-none focus:ring-2 focus:ring-primary-pink mb-2 text-sm">
+                        <input type="text" id="prod-name" placeholder="Nome do produto..." class="w-full bg-gray-50 border-none rounded-xl p-3 outline-none mb-2 text-sm font-semibold">
                         <select id="prod-category" class="w-full bg-gray-50 border-none rounded-xl p-3 outline-none text-sm"></select>
                     </div>
                 </div>
@@ -234,15 +218,15 @@
 
             <div class="bg-gray-50 p-5 rounded-3xl text-center mb-6">
                 <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Saldo Atual</span>
-                <div id="edit-qty-display" class="text-6xl font-black text-primary-pink my-3 transition-colors duration-300">0</div>
+                <div id="edit-qty-display" class="text-6xl font-black text-primary-pink my-3">0</div>
                 
                 <div class="flex items-center gap-3">
-                    <button onclick="adjustTempByValue(-1)" class="w-14 h-14 bg-danger-red text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-transform"><i data-lucide="minus"></i></button>
+                    <button onclick="adjustTempByValue(-1)" class="w-14 h-14 bg-danger-red text-white rounded-2xl flex items-center justify-center shadow-lg touch-btn"><i data-lucide="minus"></i></button>
                     <div class="flex-grow bg-white rounded-2xl p-2 border border-gray-100">
                         <label class="text-[8px] font-black text-gray-300 uppercase block">Passo</label>
                         <input type="number" id="step-value" value="1" class="w-full text-center text-xl font-black bg-transparent outline-none">
                     </div>
-                    <button onclick="adjustTempByValue(1)" class="w-14 h-14 bg-success-green text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-transform"><i data-lucide="plus"></i></button>
+                    <button onclick="adjustTempByValue(1)" class="w-14 h-14 bg-success-green text-white rounded-2xl flex items-center justify-center shadow-lg touch-btn"><i data-lucide="plus"></i></button>
                 </div>
             </div>
 
@@ -253,10 +237,12 @@
         </div>
     </div>
 
+    <!-- Inputs de arquivo escondidos -->
     <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileUpload(event, 'main')">
     <input type="file" id="edit-file-input" accept="image/*" class="hidden" onchange="handleFileUpload(event, 'edit')">
 
     <script>
+        // Banco de Dados Local
         let products = JSON.parse(localStorage.getItem('stock_pro_db')) || [];
         let categories = JSON.parse(localStorage.getItem('stock_pro_cats')) || ['Geral', 'Peças', 'Ferramentas', 'Insumos'];
         let selectedProduct = null;
@@ -278,12 +264,11 @@
             updateBadge();
         }
 
-        // --- SCANNER REVISADO ---
+        // --- SCANNER ---
         function startScanner() {
             document.getElementById('modal-scanner').style.display = 'flex';
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode("reader");
-            }
+            if (!html5QrCode) html5QrCode = new Html5Qrcode("reader");
+            
             const config = { fps: 10, qrbox: { width: 250, height: 250 } };
             html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
                 const found = products.find(p => p.id === decodedText.trim());
@@ -291,30 +276,26 @@
                     stopScanner(); 
                     setTimeout(() => openEditModal(found.id), 300);
                 }
-            }).catch(err => console.error("Erro ao iniciar scanner:", err));
+            }).catch(err => console.error(err));
         }
 
         function stopScanner() {
             if (html5QrCode && html5QrCode.isScanning) {
                 html5QrCode.stop().then(() => { 
                     document.getElementById('modal-scanner').style.display = 'none'; 
-                }).catch(err => {
-                    console.error("Erro ao parar scanner:", err);
-                    document.getElementById('modal-scanner').style.display = 'none';
                 });
             } else {
                 document.getElementById('modal-scanner').style.display = 'none';
             }
         }
 
-        // --- CATEGORIAS ---
+        // --- CATEGORIAS & FILTROS ---
         function renderCategories() {
             const s1 = document.getElementById('prod-category');
             const s2 = document.getElementById('edit-cat-select');
             const opts = categories.map(c => `<option value="${c}">${c}</option>`).join('');
             if(s1) s1.innerHTML = opts; 
             if(s2) s2.innerHTML = opts;
-            localStorage.setItem('stock_pro_cats', JSON.stringify(categories));
             renderCategoryChips();
         }
 
@@ -358,22 +339,21 @@
         function renderSpecificList(list) {
             const container = document.getElementById('inventory-list');
             if (list.length === 0) {
-                container.innerHTML = `<div class="col-span-full py-10 text-center text-gray-300 font-bold uppercase text-xs tracking-widest">Nenhum item encontrado</div>`;
+                container.innerHTML = `<div class="col-span-full py-10 text-center text-gray-300 font-bold uppercase text-[10px] tracking-widest">Nenhum item encontrado</div>`;
                 return;
             }
             container.innerHTML = list.map(p => `
                 <div onclick="openEditModal('${p.id}')" class="bg-white p-4 rounded-3xl shadow-sm border border-gray-50 flex items-center gap-4 cursor-pointer active:scale-95 transition-all">
                     <div class="w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
-                        <img src="${p.image || 'https://via.placeholder.com/80?text=Sem+Foto'}" class="w-full h-full object-cover">
+                        <img src="${p.image || 'https://via.placeholder.com/100?text=📦'}" class="w-full h-full object-cover">
                     </div>
                     <div class="flex-grow overflow-hidden">
                         <h4 class="font-black text-gray-800 uppercase text-[11px] truncate">${p.name}</h4>
-                        <p class="text-[9px] font-bold text-gray-300 uppercase">${p.category} • ID: ${p.id}</p>
+                        <p class="text-[8px] font-bold text-gray-300 uppercase">${p.category} • ID: ${p.id}</p>
                     </div>
                     <div class="text-2xl font-black ${p.qty <= (p.alert || 0) ? 'text-red-500' : 'text-primary-pink'}">${p.qty}</div>
                 </div>
             `).join('');
-            lucide.createIcons();
         }
 
         function saveProduct() {
@@ -393,12 +373,13 @@
             saveDb(); 
             renderInventory();
             
-            // Limpar Campos
+            // Reset campos
             document.getElementById('prod-name').value = "";
             document.getElementById('prod-qty').value = "0";
             clearImage();
         }
 
+        // --- EDIÇÃO ---
         function openEditModal(id) {
             selectedProduct = products.find(p => p.id === id);
             if(!selectedProduct) return;
@@ -408,7 +389,6 @@
             document.getElementById('edit-cat-select').value = selectedProduct.category;
             document.getElementById('edit-alert-input').value = selectedProduct.alert;
             document.getElementById('edit-qty-display').innerText = tempQty;
-            document.getElementById('edit-qty-display').classList.remove('animate-plus', 'animate-minus');
             document.getElementById('edit-img').src = selectedProduct.image || 'https://via.placeholder.com/150?text=Sem+Foto';
             
             resetDeleteButton();
@@ -418,12 +398,10 @@
         function adjustTempByValue(d) {
             const s = parseInt(document.getElementById('step-value').value) || 1;
             tempQty = Math.max(0, tempQty + (d * s));
-            
             const display = document.getElementById('edit-qty-display');
             display.innerText = tempQty;
-            
             display.classList.remove('animate-plus', 'animate-minus');
-            void display.offsetWidth; // Reflow
+            void display.offsetWidth; // trigger reflow
             display.classList.add(d > 0 ? 'animate-plus' : 'animate-minus');
         }
 
@@ -440,10 +418,9 @@
             closeEditModal();
         }
 
-        function closeEditModal() { 
-            document.getElementById('modal-edit').style.display = 'none'; 
-        }
-        
+        function closeEditModal() { document.getElementById('modal-edit').style.display = 'none'; }
+
+        // --- EXCLUSÃO ---
         function initDeleteHandler() {
             const btn = document.getElementById('btn-delete');
             btn.onclick = () => {
@@ -470,6 +447,7 @@
             }
         }
 
+        // --- IMPRESSÃO / QR CODE ---
         function prepareQRPreview() {
             closeEditModal();
             const wrapper = document.getElementById('print-qrcode-wrapper');
@@ -486,28 +464,19 @@
             const content = document.getElementById('label-to-print').innerHTML;
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>Imprimir Etiqueta</title>
-                        <style>
-                            body { font-family: sans-serif; text-align: center; padding: 20px; }
-                            img { max-width: 180px; margin: 10px auto; }
-                            h2 { margin: 10px 0; }
-                        </style>
-                    </head>
-                    <body>
-                        <div style="border: 1px solid #ccc; padding: 20px; display: inline-block; border-radius: 10px;">
-                            ${content}
-                        </div>
-                        <script>window.onload=()=>{setTimeout(()=> {window.print(); window.close();}, 500);}<\/script>
-                    </body>
-                </html>
+                <html><head><title>Etiqueta</title>
+                <style>
+                    body { font-family: sans-serif; text-align: center; padding: 20px; }
+                    img { max-width: 180px; margin: 10px auto; }
+                </style></head>
+                <body>${content}<script>window.onload=()=>{setTimeout(()=>{window.print();window.close();},500);}<\/script></body></html>
             `);
             printWindow.document.close();
         }
 
         function closeQrModal() { document.getElementById('qr-preview-modal').style.display = 'none'; }
 
+        // --- IMAGENS (COM COMPRESSÃO) ---
         function triggerFileInput(m) { 
             (m === 'main' ? document.getElementById('file-input') : document.getElementById('edit-file-input')).click(); 
         }
@@ -515,20 +484,18 @@
         function handleFileUpload(event, mode) {
             const file = event.target.files[0];
             if (!file) return;
-
-            // Compressor simples via Canvas para não estourar o LocalStorage
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 400;
+                    const MAX_WIDTH = 300; // Otimizado para mobile/storage
                     const scale = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scale;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                     
                     if (mode === 'main') {
                         currentPhoto = dataUrl;
@@ -555,15 +522,11 @@
         function updateBadge() {
             const l = products.filter(p => p.qty <= (p.alert || 0)).length;
             const b = document.getElementById('alert-badge');
-            if (b) {
-                b.innerText = l; 
-                (l > 0 ? b.classList.remove('hidden') : b.classList.add('hidden'));
-            }
+            if (b) { b.innerText = l; (l > 0 ? b.classList.remove('hidden') : b.classList.add('hidden')); }
         }
         
         function filterLowStock() { 
-            activeFilterTag = "";
-            renderCategoryChips();
+            activeFilterTag = ""; renderCategoryChips();
             renderSpecificList(products.filter(p => p.qty <= (p.alert || 0))); 
         }
         
