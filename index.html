@@ -35,6 +35,8 @@
             overflow-x: hidden;
             width: 100vw;
             -webkit-tap-highlight-color: transparent;
+            /* Evita zoom automático no iPhone ao clicar em inputs */
+            touch-action: manipulation;
         }
         
         .fade-in { animation: fadeIn 0.2s ease-out; }
@@ -92,6 +94,12 @@
         }
         
         .touch-btn:active { transform: scale(0.96); opacity: 0.9; }
+
+        /* Ajuste para o leitor de QR Code ficar circular/estilizado */
+        #reader video {
+            border-radius: 20px;
+            object-fit: cover;
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen pb-10">
@@ -100,7 +108,7 @@
     <div id="modal-scanner" class="modal-overlay">
         <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-4 text-center fade-in">
             <h3 class="text-xs font-black uppercase tracking-widest text-gray-400 mb-4">Escanear Produto</h3>
-            <div id="reader"></div>
+            <div id="reader" style="width: 100%;"></div>
             <button onclick="stopScanner()" class="mt-6 w-full bg-gray-100 py-4 rounded-2xl font-black text-gray-500 uppercase text-[10px] touch-btn">Fechar Scanner</button>
         </div>
     </div>
@@ -130,11 +138,10 @@
                 <i data-lucide="package" class="mr-2 w-5 h-5"></i> ESTOQUE PRO
             </h1>
             <div class="flex items-center gap-2">
-                <button onclick="filterLowStock()" class="relative p-2 text-gray-400">
+                <button onclick="filterLowStock()" class="relative p-2 text-gray-400 touch-btn">
                     <i data-lucide="bell" class="w-6 h-6"></i>
-                    <span id="alert-badge" class="hidden absolute top-0 right-0 bg-red-500 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold">0</span>
+                    <span id="alert-badge" class="hidden absolute top-1 right-1 bg-red-500 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold border-2 border-white">0</span>
                 </button>
-                <button onclick="openTagsManager()" class="p-2 text-gray-400"><i data-lucide="settings" class="w-6 h-6"></i></button>
             </div>
         </div>
     </header>
@@ -142,41 +149,41 @@
     <main class="flex-grow p-4 max-w-4xl mx-auto w-full space-y-4">
         <!-- Botões Rápidos -->
         <section class="grid grid-cols-4 gap-2">
-            <button onclick="startScanner()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 active:bg-pink-50 transition">
+            <button onclick="startScanner()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 touch-btn">
                 <div class="p-2 bg-pink-100 rounded-full mb-1 text-primary-pink"><i data-lucide="qr-code" class="w-5 h-5"></i></div>
                 <span class="text-[8px] font-black text-gray-400 uppercase">Scanner</span>
             </button>
-            <button onclick="filterLowStock()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 active:bg-red-50 transition">
+            <button onclick="filterLowStock()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 touch-btn">
                 <div class="p-2 bg-red-100 rounded-full mb-1 text-red-600"><i data-lucide="alert-triangle" class="w-5 h-5"></i></div>
                 <span class="text-[8px] font-black text-gray-400 uppercase">Alertas</span>
             </button>
-            <button onclick="openTagsManager()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 active:bg-orange-50 transition">
-                <div class="p-2 bg-orange-100 rounded-full mb-1 text-orange-600"><i data-lucide="tag" class="w-5 h-5"></i></div>
-                <span class="text-[8px] font-black text-gray-400 uppercase">Tags</span>
-            </button>
-            <button onclick="renderInventory()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 active:bg-gray-50 transition">
+            <button onclick="resetFilters()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 touch-btn">
                 <div class="p-2 bg-gray-100 rounded-full mb-1 text-gray-600"><i data-lucide="list" class="w-5 h-5"></i></div>
-                <span class="text-[8px] font-black text-gray-400 uppercase">Lista</span>
+                <span class="text-[8px] font-black text-gray-400 uppercase">Todos</span>
+            </button>
+            <button onclick="scrollToAdd()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 touch-btn">
+                <div class="p-2 bg-green-100 rounded-full mb-1 text-green-600"><i data-lucide="plus" class="w-5 h-5"></i></div>
+                <span class="text-[8px] font-black text-gray-400 uppercase">Novo</span>
             </button>
         </section>
 
         <!-- Filtros -->
-        <div id="category-chips" class="flex gap-2 overflow-x-auto hide-scroll py-1"></div>
+        <div id="category-chips" class="flex gap-2 overflow-x-auto hide-scroll py-2 px-1"></div>
 
         <!-- Cadastro Rápido -->
-        <section class="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100">
+        <section id="section-add" class="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100">
             <h2 class="text-[10px] font-black mb-4 flex items-center uppercase tracking-widest text-gray-400">Novo Produto</h2>
             <div class="space-y-4">
                 <div class="flex items-center gap-4">
                     <div id="image-placeholder" onclick="triggerFileInput('main')" class="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center shrink-0 cursor-pointer">
                         <i data-lucide="image-plus" class="w-6 h-6 text-gray-300"></i>
                     </div>
-                    <div id="image-preview-container" class="hidden relative w-20 h-20 shrink-0">
+                    <div id="image-preview-container" onclick="triggerFileInput('main')" class="hidden relative w-20 h-20 shrink-0 cursor-pointer">
                         <img id="image-preview" src="" class="w-full h-full object-cover rounded-2xl">
                     </div>
                     <div class="flex-grow">
-                        <input type="text" id="prod-name" placeholder="Nome do produto..." class="w-full bg-gray-50 border-none rounded-xl p-3 outline-none focus:ring-2 focus:ring-primary-pink mb-2">
-                        <select id="prod-category" class="w-full bg-gray-50 border-none rounded-xl p-3 outline-none"></select>
+                        <input type="text" id="prod-name" placeholder="Nome do produto..." class="w-full bg-gray-50 border-none rounded-xl p-3 outline-none focus:ring-2 focus:ring-primary-pink mb-2 text-sm">
+                        <select id="prod-category" class="w-full bg-gray-50 border-none rounded-xl p-3 outline-none text-sm"></select>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -195,7 +202,7 @@
 
         <!-- Busca -->
         <div class="relative">
-            <input type="text" id="global-search" placeholder="Pesquisar estoque..." class="w-full bg-white border-none shadow-sm rounded-2xl p-4 pl-12 outline-none">
+            <input type="text" id="global-search" placeholder="Pesquisar estoque..." class="w-full bg-white border-none shadow-sm rounded-2xl p-4 pl-12 outline-none text-sm">
             <i data-lucide="search" class="absolute left-4 top-4 text-gray-300 w-5 h-5"></i>
         </div>
 
@@ -227,16 +234,15 @@
 
             <div class="bg-gray-50 p-5 rounded-3xl text-center mb-6">
                 <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Saldo Atual</span>
-                <!-- ID para animação -->
                 <div id="edit-qty-display" class="text-6xl font-black text-primary-pink my-3 transition-colors duration-300">0</div>
                 
                 <div class="flex items-center gap-3">
-                    <button onclick="adjustTempByValue(-1)" class="w-14 h-14 bg-danger-red text-white rounded-2xl flex items-center justify-center shadow-lg"><i data-lucide="minus"></i></button>
+                    <button onclick="adjustTempByValue(-1)" class="w-14 h-14 bg-danger-red text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-transform"><i data-lucide="minus"></i></button>
                     <div class="flex-grow bg-white rounded-2xl p-2 border border-gray-100">
                         <label class="text-[8px] font-black text-gray-300 uppercase block">Passo</label>
                         <input type="number" id="step-value" value="1" class="w-full text-center text-xl font-black bg-transparent outline-none">
                     </div>
-                    <button onclick="adjustTempByValue(1)" class="w-14 h-14 bg-success-green text-white rounded-2xl flex items-center justify-center shadow-lg"><i data-lucide="plus"></i></button>
+                    <button onclick="adjustTempByValue(1)" class="w-14 h-14 bg-success-green text-white rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-transform"><i data-lucide="plus"></i></button>
                 </div>
             </div>
 
@@ -252,7 +258,7 @@
 
     <script>
         let products = JSON.parse(localStorage.getItem('stock_pro_db')) || [];
-        let categories = JSON.parse(localStorage.getItem('stock_pro_cats')) || ['Geral', 'Peças', 'Ferramentas'];
+        let categories = JSON.parse(localStorage.getItem('stock_pro_cats')) || ['Geral', 'Peças', 'Ferramentas', 'Insumos'];
         let selectedProduct = null;
         let currentPhoto = null;
         let html5QrCode = null;
@@ -272,24 +278,33 @@
             updateBadge();
         }
 
-        // --- SCANNER ---
+        // --- SCANNER REVISADO ---
         function startScanner() {
             document.getElementById('modal-scanner').style.display = 'flex';
-            html5QrCode = new Html5Qrcode("reader");
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (decodedText) => {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+            html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
                 const found = products.find(p => p.id === decodedText.trim());
-                if (found) { stopScanner(); openEditModal(found.id); }
-            }).catch(err => console.error(err));
+                if (found) { 
+                    stopScanner(); 
+                    setTimeout(() => openEditModal(found.id), 300);
+                }
+            }).catch(err => console.error("Erro ao iniciar scanner:", err));
         }
 
         function stopScanner() {
-            if (html5QrCode) {
+            if (html5QrCode && html5QrCode.isScanning) {
                 html5QrCode.stop().then(() => { 
                     document.getElementById('modal-scanner').style.display = 'none'; 
-                }).catch(() => { 
-                    document.getElementById('modal-scanner').style.display = 'none'; 
+                }).catch(err => {
+                    console.error("Erro ao parar scanner:", err);
+                    document.getElementById('modal-scanner').style.display = 'none';
                 });
-            } else { document.getElementById('modal-scanner').style.display = 'none'; }
+            } else {
+                document.getElementById('modal-scanner').style.display = 'none';
+            }
         }
 
         // --- CATEGORIAS ---
@@ -307,7 +322,7 @@
             const container = document.getElementById('category-chips');
             const all = ["TODOS", ...categories];
             container.innerHTML = all.map(c => `
-                <button onclick="filterByCategory('${c}')" class="whitespace-nowrap px-4 py-2 rounded-full text-[9px] font-black uppercase border ${activeFilterTag === c ? 'bg-primary-pink text-white border-primary-pink' : 'bg-white text-gray-400 border-gray-100'}">
+                <button onclick="filterByCategory('${c}')" class="whitespace-nowrap px-5 py-2 rounded-full text-[10px] font-black uppercase border transition-all ${activeFilterTag === c ? 'bg-primary-pink text-white border-primary-pink shadow-md' : 'bg-white text-gray-400 border-gray-100'}">
                     ${c}
                 </button>
             `).join('');
@@ -320,17 +335,37 @@
             else renderSpecificList(products.filter(p => p.category === cat));
         }
 
+        function resetFilters() {
+            activeFilterTag = "TODOS";
+            document.getElementById('global-search').value = "";
+            renderCategoryChips();
+            renderInventory();
+        }
+
+        function scrollToAdd() {
+            document.getElementById('section-add').scrollIntoView({ behavior: 'smooth' });
+        }
+
         // --- INVENTÁRIO ---
         function renderInventory(term = "") {
-            const list = products.filter(p => p.name.toLowerCase().includes(term.toLowerCase()) || p.id.toLowerCase().includes(term.toLowerCase()));
+            const list = products.filter(p => 
+                p.name.toLowerCase().includes(term.toLowerCase()) || 
+                p.id.toLowerCase().includes(term.toLowerCase())
+            );
             renderSpecificList(list);
         }
 
         function renderSpecificList(list) {
             const container = document.getElementById('inventory-list');
+            if (list.length === 0) {
+                container.innerHTML = `<div class="col-span-full py-10 text-center text-gray-300 font-bold uppercase text-xs tracking-widest">Nenhum item encontrado</div>`;
+                return;
+            }
             container.innerHTML = list.map(p => `
-                <div onclick="openEditModal('${p.id}')" class="bg-white p-4 rounded-3xl shadow-sm border border-gray-50 flex items-center gap-4 cursor-pointer active:scale-95 transition">
-                    <img src="${p.image || 'https://via.placeholder.com/80'}" class="w-14 h-14 rounded-2xl object-cover bg-gray-100">
+                <div onclick="openEditModal('${p.id}')" class="bg-white p-4 rounded-3xl shadow-sm border border-gray-50 flex items-center gap-4 cursor-pointer active:scale-95 transition-all">
+                    <div class="w-14 h-14 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
+                        <img src="${p.image || 'https://via.placeholder.com/80?text=Sem+Foto'}" class="w-full h-full object-cover">
+                    </div>
                     <div class="flex-grow overflow-hidden">
                         <h4 class="font-black text-gray-800 uppercase text-[11px] truncate">${p.name}</h4>
                         <p class="text-[9px] font-bold text-gray-300 uppercase">${p.category} • ID: ${p.id}</p>
@@ -344,33 +379,42 @@
         function saveProduct() {
             const name = document.getElementById('prod-name').value.trim();
             if(!name) return;
-            products.unshift({
+            
+            const newProd = {
                 id: Math.random().toString(36).substr(2, 4).toUpperCase(),
                 name,
                 category: document.getElementById('prod-category').value,
                 qty: parseInt(document.getElementById('prod-qty').value) || 0,
                 alert: parseInt(document.getElementById('prod-alert').value) || 2,
                 image: currentPhoto
-            });
-            saveDb(); renderInventory();
+            };
+            
+            products.unshift(newProd);
+            saveDb(); 
+            renderInventory();
+            
+            // Limpar Campos
             document.getElementById('prod-name').value = "";
+            document.getElementById('prod-qty').value = "0";
             clearImage();
         }
 
         function openEditModal(id) {
             selectedProduct = products.find(p => p.id === id);
             if(!selectedProduct) return;
+            
             tempQty = selectedProduct.qty;
             document.getElementById('edit-name-input').value = selectedProduct.name;
             document.getElementById('edit-cat-select').value = selectedProduct.category;
             document.getElementById('edit-alert-input').value = selectedProduct.alert;
             document.getElementById('edit-qty-display').innerText = tempQty;
-            document.getElementById('edit-img').src = selectedProduct.image || '';
+            document.getElementById('edit-qty-display').classList.remove('animate-plus', 'animate-minus');
+            document.getElementById('edit-img').src = selectedProduct.image || 'https://via.placeholder.com/150?text=Sem+Foto';
+            
             resetDeleteButton();
             document.getElementById('modal-edit').style.display = 'flex';
         }
 
-        // --- Lógica de Ajuste com Animação ---
         function adjustTempByValue(d) {
             const s = parseInt(document.getElementById('step-value').value) || 1;
             tempQty = Math.max(0, tempQty + (d * s));
@@ -378,13 +422,8 @@
             const display = document.getElementById('edit-qty-display');
             display.innerText = tempQty;
             
-            // Remove classes se já existirem
             display.classList.remove('animate-plus', 'animate-minus');
-            
-            // Força reflow para reiniciar animação
-            void display.offsetWidth;
-            
-            // Adiciona a classe baseada na direção (Verde p/ +, Vermelho p/ -)
+            void display.offsetWidth; // Reflow
             display.classList.add(d > 0 ? 'animate-plus' : 'animate-minus');
         }
 
@@ -395,20 +434,23 @@
                 products[idx].category = document.getElementById('edit-cat-select').value;
                 products[idx].alert = parseInt(document.getElementById('edit-alert-input').value);
                 products[idx].qty = tempQty;
-                saveDb(); renderInventory();
+                saveDb(); 
+                renderInventory();
             }
             closeEditModal();
         }
 
-        function closeEditModal() { document.getElementById('modal-edit').style.display = 'none'; }
+        function closeEditModal() { 
+            document.getElementById('modal-edit').style.display = 'none'; 
+        }
         
         function initDeleteHandler() {
             const btn = document.getElementById('btn-delete');
             btn.onclick = () => {
                 if (btn.getAttribute('data-confirm') !== 'true') {
                     btn.setAttribute('data-confirm', 'true');
-                    btn.innerHTML = '<i data-lucide="check"></i>';
-                    btn.className = "p-3 bg-red-600 text-white rounded-xl";
+                    btn.innerHTML = '<i data-lucide="check" class="w-5 h-5"></i>';
+                    btn.className = "p-3 bg-red-600 text-white rounded-xl shadow-lg animate-bounce";
                     lucide.createIcons();
                     setTimeout(resetDeleteButton, 3000);
                 } else {
@@ -423,7 +465,7 @@
             if(btn) {
                 btn.setAttribute('data-confirm', 'false');
                 btn.className = "p-3 bg-red-50 text-red-500 rounded-xl";
-                btn.innerHTML = '<i data-lucide="trash-2"></i>';
+                btn.innerHTML = '<i data-lucide="trash-2" class="w-5 h-5"></i>';
                 lucide.createIcons();
             }
         }
@@ -436,22 +478,28 @@
             document.getElementById('print-id').innerText = "ID: " + selectedProduct.id;
             document.getElementById('qr-preview-modal').style.display = 'flex';
             setTimeout(() => {
-                new QRCode(wrapper, { text: selectedProduct.id, width: 180, height: 180 });
-            }, 50);
+                new QRCode(wrapper, { text: selectedProduct.id, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.H });
+            }, 100);
         }
 
         function executePrint() {
-            const qrCanvas = document.querySelector('#print-qrcode-wrapper canvas');
-            if(!qrCanvas) return;
-            const qrSrc = qrCanvas.toDataURL("image/png");
+            const content = document.getElementById('label-to-print').innerHTML;
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
                 <html>
-                    <body style="text-align:center; padding:20px;">
-                        <h2 style="text-transform:uppercase">${selectedProduct.name}</h2>
-                        <img src="${qrSrc}" style="width:200px" />
-                        <p style="font-family:monospace">ID: ${selectedProduct.id}</p>
-                        <script>window.onload=()=>{window.print();window.close();}<\/script>
+                    <head>
+                        <title>Imprimir Etiqueta</title>
+                        <style>
+                            body { font-family: sans-serif; text-align: center; padding: 20px; }
+                            img { max-width: 180px; margin: 10px auto; }
+                            h2 { margin: 10px 0; }
+                        </style>
+                    </head>
+                    <body>
+                        <div style="border: 1px solid #ccc; padding: 20px; display: inline-block; border-radius: 10px;">
+                            ${content}
+                        </div>
+                        <script>window.onload=()=>{setTimeout(()=> {window.print(); window.close();}, 500);}<\/script>
                     </body>
                 </html>
             `);
@@ -464,22 +512,38 @@
             (m === 'main' ? document.getElementById('file-input') : document.getElementById('edit-file-input')).click(); 
         }
 
-        function handleFileUpload(e, m) {
-            const f = e.target.files[0]; if(!f) return;
-            const r = new FileReader();
-            r.onload = (ev) => {
-                if(m === 'main') {
-                    currentPhoto = ev.target.result;
-                    document.getElementById('image-placeholder').classList.add('hidden');
-                    document.getElementById('image-preview').src = currentPhoto;
-                    document.getElementById('image-preview-container').classList.remove('hidden');
-                } else {
-                    selectedProduct.image = ev.target.result;
-                    document.getElementById('edit-img').src = ev.target.result;
-                    saveDb(); renderInventory();
-                }
+        function handleFileUpload(event, mode) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Compressor simples via Canvas para não estourar o LocalStorage
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 400;
+                    const scale = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scale;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    if (mode === 'main') {
+                        currentPhoto = dataUrl;
+                        document.getElementById('image-placeholder').classList.add('hidden');
+                        document.getElementById('image-preview').src = dataUrl;
+                        document.getElementById('image-preview-container').classList.remove('hidden');
+                    } else {
+                        selectedProduct.image = dataUrl;
+                        document.getElementById('edit-img').src = dataUrl;
+                        saveDb(); renderInventory();
+                    }
+                };
+                img.src = e.target.result;
             };
-            r.readAsDataURL(f);
+            reader.readAsDataURL(file);
         }
 
         function clearImage() { 
@@ -491,10 +555,17 @@
         function updateBadge() {
             const l = products.filter(p => p.qty <= (p.alert || 0)).length;
             const b = document.getElementById('alert-badge');
-            b.innerText = l; (l > 0 ? b.classList.remove('hidden') : b.classList.add('hidden'));
+            if (b) {
+                b.innerText = l; 
+                (l > 0 ? b.classList.remove('hidden') : b.classList.add('hidden'));
+            }
         }
         
-        function filterLowStock() { renderSpecificList(products.filter(p => p.qty <= (p.alert || 0))); }
+        function filterLowStock() { 
+            activeFilterTag = "";
+            renderCategoryChips();
+            renderSpecificList(products.filter(p => p.qty <= (p.alert || 0))); 
+        }
         
         document.getElementById('global-search').addEventListener('input', (e) => renderInventory(e.target.value));
     </script>
