@@ -42,20 +42,18 @@
         .hide-scroll::-webkit-scrollbar { display: none; }
         .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Camadas de Z-Index */
         .modal-overlay {
             display: none;
             position: fixed;
             inset: 0;
             background: rgba(0,0,0,0.85);
             backdrop-filter: blur(8px);
-            z-index: 5000; /* Modais padrão */
+            z-index: 5000;
             align-items: center;
             justify-content: center;
             padding: 16px;
         }
 
-        /* O Modal de Impressão deve estar ACIMA de todos */
         #qr-preview-modal {
             z-index: 6000; 
         }
@@ -93,7 +91,7 @@
 </head>
 <body class="flex flex-col min-h-screen pb-10">
 
-    <!-- Modal de Impressão de Etiqueta (Z-INDEX 6000) -->
+    <!-- Modal de Impressão de Etiqueta -->
     <div id="qr-preview-modal" class="modal-overlay">
         <div class="preview-card fade-in">
             <div id="label-preview-content">
@@ -111,7 +109,7 @@
         </div>
     </div>
 
-    <!-- Modais Auxiliares (Z-INDEX 5000) -->
+    <!-- Modais Auxiliares -->
     <div id="modal-tags" class="modal-overlay">
         <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-6 fade-in shadow-2xl">
             <h3 class="text-sm font-black text-gray-800 mb-4 uppercase tracking-widest">Categorias</h3>
@@ -141,7 +139,7 @@
     </header>
 
     <main class="flex-grow p-4 max-w-4xl mx-auto w-full space-y-4">
-        <!-- Atalhos -->
+        <!-- Atalhos Rápidos -->
         <section class="grid grid-cols-4 gap-2">
             <button onclick="openAiModal()" class="flex flex-col items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-50 active:bg-pink-50 transition">
                 <div class="p-2 bg-pink-100 rounded-full mb-1 text-primary-pink"><i data-lucide="camera" class="w-5 h-5"></i></div>
@@ -161,10 +159,10 @@
             </button>
         </section>
 
-        <!-- Filtros -->
+        <!-- Filtros por Categoria -->
         <div id="category-chips" class="flex gap-2 overflow-x-auto hide-scroll py-1"></div>
 
-        <!-- Cadastro -->
+        <!-- Formulário de Cadastro -->
         <section class="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 w-full overflow-hidden">
             <h2 class="text-[10px] font-black mb-4 flex items-center uppercase tracking-widest text-gray-400">
                 <i data-lucide="plus-circle" class="mr-2 w-4 h-4 text-primary-pink"></i> Novo Item
@@ -205,16 +203,17 @@
             </div>
         </section>
 
-        <!-- Pesquisa -->
+        <!-- Barra de Pesquisa -->
         <div class="relative w-full">
             <input type="text" id="global-search" placeholder="Pesquisar estoque..." class="w-full bg-white border-none shadow-sm rounded-2xl p-4 pl-12 outline-none focus:ring-2 focus:ring-pink-100">
             <i data-lucide="search" class="absolute left-4 top-4 text-gray-300 w-5 h-5"></i>
         </div>
 
+        <!-- Lista de Inventário -->
         <div id="inventory-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pb-24"></div>
     </main>
 
-    <!-- Modal Edição (Z-INDEX 5000) -->
+    <!-- Modal Edição -->
     <div id="modal-edit" class="modal-overlay">
         <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-6 fade-in shadow-2xl max-h-[95vh] overflow-y-auto hide-scroll">
             <div class="flex justify-between items-center mb-6">
@@ -272,7 +271,7 @@
         </div>
     </div>
 
-    <!-- Modal Câmera AI -->
+    <!-- Modal Câmera AI (Simulado) -->
     <div id="modal-ai" class="modal-overlay">
         <div class="bg-white rounded-[2.5rem] w-full max-w-sm p-4 text-center">
             <div class="bg-black rounded-[2rem] overflow-hidden aspect-square mb-4">
@@ -542,14 +541,19 @@
             try {
                 const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
                 v.srcObject = s;
-            } catch (err) { alert("Câmara inacessível"); }
+            } catch (err) { 
+                // Fallback para quando não há câmara no ambiente de preview
+                console.warn("Câmara inacessível"); 
+            }
         }
 
         async function captureFromAi() {
             const v = document.getElementById('ai-video');
             const c = document.createElement('canvas');
-            c.width = v.videoWidth; c.height = v.videoHeight;
-            c.getContext('2d').drawImage(v, 0, 0);
+            c.width = v.videoWidth || 640; 
+            c.height = v.videoHeight || 480;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(v, 0, 0);
             const compressed = await compressImage(c.toDataURL('image/webp', 0.6));
             if (document.getElementById('modal-edit').style.display === 'flex') {
                 selectedProduct.image = compressed;
@@ -584,19 +588,12 @@
 
         function prepareQRPreview() {
             if (!selectedProduct) return;
-            
-            // Opcional: Fechar o modal de edição para limpar a vista
-            // closeEditModal(); 
-
             const modal = document.getElementById('qr-preview-modal');
             const qrWrapper = document.getElementById('print-qrcode-wrapper');
             qrWrapper.innerHTML = "";
             document.getElementById('print-name').innerText = selectedProduct.name;
             document.getElementById('print-id').innerText = "ID: " + selectedProduct.id;
-            
-            // Exibe o modal (ele já tem Z-INDEX 6000 no CSS)
             modal.style.display = 'flex';
-            
             setTimeout(() => {
                 new QRCode(qrWrapper, { 
                     text: selectedProduct.id, 
@@ -619,31 +616,47 @@
         }
 
         function executePrint() {
-            const content = document.getElementById('label-preview-content').innerHTML;
+            // Capturamos o QR Code como uma imagem real antes de imprimir para garantir compatibilidade no celular
+            const qrCanvas = document.querySelector('#print-qrcode-wrapper canvas');
+            if (!qrCanvas) {
+                // Tenta pegar a imagem se a biblioteca gerou img em vez de canvas
+                const qrImg = document.querySelector('#print-qrcode-wrapper img');
+                if (!qrImg) return;
+                var qrSrc = qrImg.src;
+            } else {
+                var qrSrc = qrCanvas.toDataURL("image/png");
+            }
+
+            const name = document.getElementById('print-name').innerText;
+            const id = document.getElementById('print-id').innerText;
+
             const printWindow = window.open('', '_blank', 'width=400,height=600');
-            
             printWindow.document.write(`
                 <html>
                     <head>
                         <title>Imprimir Etiqueta</title>
                         <style>
                             @page { margin: 10mm; size: auto; }
-                            body { 
-                                font-family: -apple-system, system-ui, sans-serif; 
-                                text-align: center; margin: 0; padding: 20px; 
-                                display: flex; flex-direction: column; align-items: center; 
-                                justify-content: center; min-height: 100vh;
-                            }
-                            #label-container { border: 1px solid #000; padding: 30px; border-radius: 10px; width: 280px; }
-                            img { max-width: 100%; height: auto; margin: 20px 0; }
-                            h2 { margin: 0 0 10px 0; text-transform: uppercase; font-size: 20px; }
+                            body { font-family: sans-serif; text-align: center; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+                            #label-container { border: 1px solid #000; padding: 30px; border-radius: 10px; display: inline-block; width: 280px; }
+                            h2 { margin-bottom: 10px; text-transform: uppercase; font-size: 20px; }
+                            img { margin: 20px 0; max-width: 200px; height: auto; }
+                            p { font-size: 14px; color: #666; font-family: monospace; }
                         </style>
                     </head>
                     <body>
-                        <div id="label-container">${content}</div>
+                        <div id="label-container">
+                            <p style="font-size: 10px; color: #e91e63; font-weight: 900; letter-spacing: 2px; text-transform: uppercase;">Estoque Pro</p>
+                            <h2>${name}</h2>
+                            <img src="${qrSrc}" />
+                            <p>${id}</p>
+                        </div>
                         <script>
-                            window.onload = function() {
-                                setTimeout(() => { window.print(); }, 800);
+                            window.onload = function() { 
+                                setTimeout(() => {
+                                    window.print(); 
+                                    window.onafterprint = function() { window.close(); };
+                                }, 500);
                             };
                         <\/script>
                     </body>
