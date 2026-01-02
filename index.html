@@ -86,7 +86,6 @@
         
         .touch-btn:active { transform: scale(0.96); opacity: 0.9; }
 
-        /* Estilos específicos para impressão via CSS Media Query */
         @media print {
             body * { visibility: hidden; }
             #label-preview-content, #label-preview-content * { visibility: visible; }
@@ -96,11 +95,7 @@
                 top: 0;
                 width: 100%;
                 border: none !important;
-                padding: 0 !important;
-                margin: 0 !important;
             }
-            .modal-overlay, .preview-card { background: none !important; backdrop-filter: none !important; box-shadow: none !important; }
-            button { display: none !important; }
         }
     </style>
 </head>
@@ -329,10 +324,6 @@
                 updateBadge();
             } catch (e) {
                 console.error("Storage full:", e);
-                const msg = document.createElement('div');
-                msg.innerHTML = '<div style="position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#ef4444;color:white;padding:15px;border-radius:10px;z-index:9999;font-weight:bold;">Memória Cheia! Remova itens antigos.</div>';
-                document.body.appendChild(msg);
-                setTimeout(() => msg.remove(), 4000);
             }
         }
 
@@ -446,13 +437,9 @@
             const step = parseInt(document.getElementById('step-value').value) || 1;
             tempQty = Math.max(0, tempQty + (direction * step));
             display.innerText = tempQty;
-
             if (colorResetTimeout) clearTimeout(colorResetTimeout);
             display.style.color = direction > 0 ? '#10b981' : '#ef4444';
-
-            colorResetTimeout = setTimeout(() => {
-                display.style.color = '#e91e63';
-            }, 400);
+            colorResetTimeout = setTimeout(() => { display.style.color = '#e91e63'; }, 400);
         }
 
         async function saveProduct() {
@@ -608,53 +595,39 @@
 
         function prepareQRPreview() {
             if (!selectedProduct) return;
-            
             const modal = document.getElementById('qr-preview-modal');
             const qrWrapper = document.getElementById('print-qrcode-wrapper');
-            
             qrWrapper.innerHTML = "";
             document.getElementById('print-name').innerText = selectedProduct.name;
             document.getElementById('print-id').innerText = "ID: " + selectedProduct.id;
-            
             modal.style.display = 'flex';
             
             setTimeout(() => {
                 try {
                     new QRCode(qrWrapper, { 
                         text: selectedProduct.id, 
-                        width: 180, 
-                        height: 180, 
-                        colorDark : "#000000",
-                        colorLight : "#ffffff",
-                        correctLevel: QRCode.CorrectLevel.M 
+                        width: 180, height: 180, 
+                        colorDark : "#000000", colorLight : "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H 
                     });
-                } catch (e) {
-                    qrWrapper.innerHTML = "<p style='color:red; font-size:10px;'>Erro ao gerar QR</p>";
-                }
-            }, 200);
+                } catch (e) { console.error(e); }
+            }, 300);
         }
 
         function closeQrModal() { document.getElementById('qr-preview-modal').style.display = 'none'; }
 
-        function filterLowStock() {
-            activeFilterTag = null;
-            renderCategoryChips();
-            const low = products.filter(p => p.qty <= (p.alert || 0));
-            renderSpecificList(low);
-        }
-
-        // FUNÇÃO CORRIGIDA PARA IMPRESSÃO EM CELULAR
+        // LÓGICA DE IMPRESSÃO OTIMIZADA PARA PDF MOBILE
         function executePrint() {
-            // Pegamos o elemento do QR Code (ele gera um canvas ou img dentro da div)
             const qrWrapper = document.getElementById('print-qrcode-wrapper');
-            const qrCanvas = qrWrapper.querySelector('canvas');
-            const qrImg = qrWrapper.querySelector('img');
+            const canvas = qrWrapper.querySelector('canvas');
+            const imgFromQr = qrWrapper.querySelector('img');
             
-            let qrSource = "";
-            if (qrCanvas) {
-                qrSource = qrCanvas.toDataURL("image/png");
-            } else if (qrImg) {
-                qrSource = qrImg.src;
+            // Forçamos a captura da imagem do QR Code para não depender do elemento dinâmico
+            let qrBase64 = "";
+            if (canvas) {
+                qrBase64 = canvas.toDataURL("image/png");
+            } else if (imgFromQr && imgFromQr.src.startsWith('data:')) {
+                qrBase64 = imgFromQr.src;
             }
 
             const name = document.getElementById('print-name').innerText;
@@ -662,50 +635,64 @@
 
             const printWindow = window.open('', '_blank');
             if (!printWindow) {
-                // Se o popup for bloqueado, tentamos usar o método de impressão da própria página escondendo o resto
-                window.print();
+                alert("Por favor, permita pop-ups para imprimir.");
                 return;
             }
 
+            // Construção do documento para impressão sem dependências externas
             printWindow.document.write(`
-                <!DOCTYPE html>
                 <html>
                     <head>
-                        <title>Etiqueta - ${name}</title>
+                        <title>Etiqueta ${id}</title>
                         <style>
-                            @page { size: 80mm 80mm; margin: 0; }
                             body { 
                                 font-family: sans-serif; 
-                                margin: 0; padding: 20px;
-                                display: flex; flex-direction: column; align-items: center; justify-content: center;
-                                text-align: center;
+                                text-align: center; 
+                                margin: 0; 
+                                padding: 40px 10px;
+                                display: flex; 
+                                flex-direction: column; 
+                                align-items: center;
                             }
-                            .label-box { border: 1px dashed #ccc; padding: 20px; width: 250px; }
-                            .brand { font-size: 10px; color: #e91e63; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; }
-                            .name { font-size: 18px; font-weight: 900; margin: 10px 0; text-transform: uppercase; }
-                            .qr-img { width: 180px; height: 180px; margin: 10px auto; display: block; }
-                            .id-code { font-family: monospace; font-weight: 900; font-size: 14px; margin-top: 10px; }
+                            .box { 
+                                border: 2px solid #000; 
+                                padding: 20px; 
+                                border-radius: 15px; 
+                                width: 280px; 
+                            }
+                            .brand { font-size: 12px; color: #e91e63; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+                            .name { font-size: 20px; font-weight: 900; margin: 10px 0; text-transform: uppercase; line-height: 1.2; }
+                            .qr { width: 200px; height: 200px; margin: 15px 0; }
+                            .id { font-family: monospace; font-size: 16px; font-weight: bold; background: #eee; padding: 5px 10px; border-radius: 5px; }
                         </style>
                     </head>
                     <body>
-                        <div class="label-box">
+                        <div class="box">
                             <div class="brand">Estoque Pro</div>
                             <div class="name">${name}</div>
-                            <img src="${qrSource}" class="qr-img">
-                            <div class="id-code">${id}</div>
+                            <img src="${qrBase64}" class="qr">
+                            <div class="id">${id}</div>
                         </div>
                         <script>
                             window.onload = function() {
-                                setTimeout(() => {
+                                // Pequeno delay para garantir que o sistema de visualização do PDF carregue a imagem
+                                setTimeout(function() {
                                     window.print();
-                                    window.onafterprint = function() { window.close(); };
-                                }, 500);
+                                    // Removido o window.close() para evitar que o navegador mobile feche a visualização antes de gerar o PDF
+                                }, 800);
                             };
                         <\/script>
                     </body>
                 </html>
             `);
             printWindow.document.close();
+        }
+
+        function filterLowStock() {
+            activeFilterTag = null;
+            renderCategoryChips();
+            const low = products.filter(p => p.qty <= (p.alert || 0));
+            renderSpecificList(low);
         }
 
         document.getElementById('global-search').addEventListener('input', (e) => renderInventory(e.target.value));
