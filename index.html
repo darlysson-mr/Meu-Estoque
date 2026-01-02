@@ -85,6 +85,23 @@
         }
         
         .touch-btn:active { transform: scale(0.96); opacity: 0.9; }
+
+        /* Estilos específicos para impressão via CSS Media Query */
+        @media print {
+            body * { visibility: hidden; }
+            #label-preview-content, #label-preview-content * { visibility: visible; }
+            #label-preview-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .modal-overlay, .preview-card { background: none !important; backdrop-filter: none !important; box-shadow: none !important; }
+            button { display: none !important; }
+        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen pb-10">
@@ -479,7 +496,6 @@
                 products[idx].category = document.getElementById('edit-cat-select').value;
                 products[idx].alert = parseInt(document.getElementById('edit-alert-input').value) || 0;
                 products[idx].qty = tempQty;
-                // A imagem já é atualizada na seleção
                 saveDb(); renderInventory();
             }
             closeEditModal();
@@ -574,7 +590,6 @@
             document.getElementById('modal-ai').style.display = 'none';
         }
 
-        // FUNÇÃO DE COMPRESSÃO MELHORADA PARA POUPAR MEMÓRIA
         function compressImage(base64Str, maxWidth = 200, quality = 0.5) {
             return new Promise((resolve) => {
                 const img = new Image();
@@ -586,7 +601,6 @@
                     canvas.width = width; canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-                    // Usando WebP com qualidade baixa para ocupar mínimo espaço
                     resolve(canvas.toDataURL('image/webp', quality));
                 };
             });
@@ -598,7 +612,6 @@
             const modal = document.getElementById('qr-preview-modal');
             const qrWrapper = document.getElementById('print-qrcode-wrapper');
             
-            // Lógica robusta para limpar e regenerar o QR
             qrWrapper.innerHTML = "";
             document.getElementById('print-name').innerText = selectedProduct.name;
             document.getElementById('print-id').innerText = "ID: " + selectedProduct.id;
@@ -630,36 +643,63 @@
             renderSpecificList(low);
         }
 
+        // FUNÇÃO CORRIGIDA PARA IMPRESSÃO EM CELULAR
         function executePrint() {
-            const content = document.getElementById('label-preview-content').innerHTML;
-            const printWindow = window.open('', '_blank', 'width=450,height=650');
+            // Pegamos o elemento do QR Code (ele gera um canvas ou img dentro da div)
+            const qrWrapper = document.getElementById('print-qrcode-wrapper');
+            const qrCanvas = qrWrapper.querySelector('canvas');
+            const qrImg = qrWrapper.querySelector('img');
             
+            let qrSource = "";
+            if (qrCanvas) {
+                qrSource = qrCanvas.toDataURL("image/png");
+            } else if (qrImg) {
+                qrSource = qrImg.src;
+            }
+
+            const name = document.getElementById('print-name').innerText;
+            const id = document.getElementById('print-id').innerText;
+
+            const printWindow = window.open('', '_blank');
+            if (!printWindow) {
+                // Se o popup for bloqueado, tentamos usar o método de impressão da própria página escondendo o resto
+                window.print();
+                return;
+            }
+
             printWindow.document.write(`
+                <!DOCTYPE html>
                 <html>
                     <head>
-                        <title>Imprimir Etiqueta</title>
+                        <title>Etiqueta - ${name}</title>
                         <style>
-                            @page { margin: 5mm; size: auto; }
+                            @page { size: 80mm 80mm; margin: 0; }
                             body { 
-                                font-family: -apple-system, system-ui, sans-serif; 
-                                text-align: center; margin: 0; padding: 10px; 
-                                display: flex; flex-direction: column; align-items: center; 
-                                justify-content: center; min-height: 90vh;
+                                font-family: sans-serif; 
+                                margin: 0; padding: 20px;
+                                display: flex; flex-direction: column; align-items: center; justify-content: center;
+                                text-align: center;
                             }
-                            #label-container { border: 1px dashed #ccc; padding: 20px; border-radius: 10px; width: 300px; display: inline-block; }
-                            img { max-width: 100%; height: auto; margin: 10px 0; }
-                            h2 { margin: 5px 0; text-transform: uppercase; font-size: 18px; line-height: 1.1; }
-                            p { margin: 5px 0; }
+                            .label-box { border: 1px dashed #ccc; padding: 20px; width: 250px; }
+                            .brand { font-size: 10px; color: #e91e63; font-weight: 900; text-transform: uppercase; margin-bottom: 5px; }
+                            .name { font-size: 18px; font-weight: 900; margin: 10px 0; text-transform: uppercase; }
+                            .qr-img { width: 180px; height: 180px; margin: 10px auto; display: block; }
+                            .id-code { font-family: monospace; font-weight: 900; font-size: 14px; margin-top: 10px; }
                         </style>
                     </head>
                     <body>
-                        <div id="label-container">${content}</div>
+                        <div class="label-box">
+                            <div class="brand">Estoque Pro</div>
+                            <div class="name">${name}</div>
+                            <img src="${qrSource}" class="qr-img">
+                            <div class="id-code">${id}</div>
+                        </div>
                         <script>
                             window.onload = function() {
-                                setTimeout(() => { 
-                                    window.print(); 
-                                    // window.close(); 
-                                }, 1000);
+                                setTimeout(() => {
+                                    window.print();
+                                    window.onafterprint = function() { window.close(); };
+                                }, 500);
                             };
                         <\/script>
                     </body>
