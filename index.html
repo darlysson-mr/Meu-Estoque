@@ -85,18 +85,6 @@
         }
         
         .touch-btn:active { transform: scale(0.96); opacity: 0.9; }
-
-        @media print {
-            body * { visibility: hidden; }
-            #label-preview-content, #label-preview-content * { visibility: visible; }
-            #label-preview-content {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                border: none !important;
-            }
-        }
     </style>
 </head>
 <body class="flex flex-col min-h-screen pb-10">
@@ -114,7 +102,7 @@
             </div>
             <div class="space-y-3">
                 <button onclick="executePrint()" class="w-full bg-primary-pink text-white py-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-2 uppercase tracking-widest touch-btn">
-                    <i data-lucide="printer" class="w-5 h-5"></i> Abrir Impressão
+                    <i data-lucide="printer" class="w-5 h-5"></i> Imprimir / Salvar PDF
                 </button>
                 <button onclick="closeQrModal()" class="w-full text-gray-400 py-2 font-bold text-[11px] uppercase tracking-widest">Sair</button>
             </div>
@@ -171,15 +159,11 @@
             </button>
         </section>
 
-        <!-- Filtros -->
-        <div id="category-chips" class="flex gap-2 overflow-x-auto hide-scroll py-1"></div>
-
         <!-- Cadastro -->
         <section class="bg-white p-5 rounded-[2rem] shadow-sm border border-gray-100 w-full overflow-hidden">
             <h2 class="text-[10px] font-black mb-4 flex items-center uppercase tracking-widest text-gray-400">
                 <i data-lucide="plus-circle" class="mr-2 w-4 h-4 text-primary-pink"></i> Novo Item
             </h2>
-            
             <div class="space-y-4">
                 <div class="flex items-center gap-4">
                     <div id="image-placeholder" onclick="triggerFileInput('main')" class="w-20 h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center shrink-0 cursor-pointer">
@@ -194,7 +178,6 @@
                         <select id="prod-category" class="w-full bg-gray-50 border-none rounded-xl p-3 outline-none appearance-none"></select>
                     </div>
                 </div>
-
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-gray-50 rounded-xl p-3">
                         <label class="text-[9px] font-black text-gray-400 uppercase">Estoque</label>
@@ -205,17 +188,14 @@
                         <input type="number" id="prod-alert" value="2" class="w-full bg-transparent font-black text-lg outline-none">
                     </div>
                 </div>
-                
                 <input type="file" id="file-input" accept="image/*" class="hidden" onchange="handleFileUpload(event, 'main')">
                 <input type="file" id="edit-file-input" accept="image/*" class="hidden" onchange="handleFileUpload(event, 'edit')">
-                
-                <button onclick="saveProduct()" class="w-full bg-primary-pink text-white font-black py-4 rounded-2xl shadow-lg uppercase text-[12px] tracking-widest touch-btn">
-                    Cadastrar Item
-                </button>
+                <button onclick="saveProduct()" class="w-full bg-primary-pink text-white font-black py-4 rounded-2xl shadow-lg uppercase text-[12px] tracking-widest touch-btn">Cadastrar Item</button>
             </div>
         </section>
 
-        <!-- Pesquisa -->
+        <div id="category-chips" class="flex gap-2 overflow-x-auto hide-scroll py-1"></div>
+
         <div class="relative w-full">
             <input type="text" id="global-search" placeholder="Pesquisar estoque..." class="w-full bg-white border-none shadow-sm rounded-2xl p-4 pl-12 outline-none focus:ring-2 focus:ring-pink-100">
             <i data-lucide="search" class="absolute left-4 top-4 text-gray-300 w-5 h-5"></i>
@@ -616,76 +596,80 @@
 
         function closeQrModal() { document.getElementById('qr-preview-modal').style.display = 'none'; }
 
-        // LÓGICA DE IMPRESSÃO OTIMIZADA PARA PDF MOBILE
+        // LÓGICA DE IMPRESSÃO VIA IFRAME (MUITO MAIS ESTÁVEL EM MOBILE)
         function executePrint() {
             const qrWrapper = document.getElementById('print-qrcode-wrapper');
             const canvas = qrWrapper.querySelector('canvas');
-            const imgFromQr = qrWrapper.querySelector('img');
+            const imgQr = qrWrapper.querySelector('img');
             
-            // Forçamos a captura da imagem do QR Code para não depender do elemento dinâmico
+            // Forçamos a captura em Base64
             let qrBase64 = "";
-            if (canvas) {
-                qrBase64 = canvas.toDataURL("image/png");
-            } else if (imgFromQr && imgFromQr.src.startsWith('data:')) {
-                qrBase64 = imgFromQr.src;
-            }
+            if (canvas) qrBase64 = canvas.toDataURL("image/png");
+            else if (imgQr) qrBase64 = imgQr.src;
 
             const name = document.getElementById('print-name').innerText;
             const id = document.getElementById('print-id').innerText;
 
-            const printWindow = window.open('', '_blank');
-            if (!printWindow) {
-                alert("Por favor, permita pop-ups para imprimir.");
-                return;
+            // Criar iframe oculto
+            let printFrame = document.getElementById('printFrame');
+            if (!printFrame) {
+                printFrame = document.createElement('iframe');
+                printFrame.id = 'printFrame';
+                printFrame.style.position = 'fixed';
+                printFrame.style.right = '0';
+                printFrame.style.bottom = '0';
+                printFrame.style.width = '0';
+                printFrame.style.height = '0';
+                printFrame.style.border = '0';
+                document.body.appendChild(printFrame);
             }
 
-            // Construção do documento para impressão sem dependências externas
-            printWindow.document.write(`
+            const frameDoc = printFrame.contentWindow.document;
+            frameDoc.open();
+            frameDoc.write(`
                 <html>
                     <head>
-                        <title>Etiqueta ${id}</title>
+                        <title>Imprimir QR</title>
                         <style>
                             body { 
+                                margin: 0; padding: 20px; 
                                 font-family: sans-serif; 
-                                text-align: center; 
-                                margin: 0; 
-                                padding: 40px 10px;
-                                display: flex; 
-                                flex-direction: column; 
-                                align-items: center;
+                                display: flex; flex-direction: column; align-items: center; 
+                                text-align: center;
                             }
-                            .box { 
-                                border: 2px solid #000; 
-                                padding: 20px; 
-                                border-radius: 15px; 
-                                width: 280px; 
+                            .card {
+                                border: 2px solid #000;
+                                padding: 20px;
+                                border-radius: 12px;
+                                width: 240px;
                             }
-                            .brand { font-size: 12px; color: #e91e63; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
-                            .name { font-size: 20px; font-weight: 900; margin: 10px 0; text-transform: uppercase; line-height: 1.2; }
-                            .qr { width: 200px; height: 200px; margin: 15px 0; }
-                            .id { font-family: monospace; font-size: 16px; font-weight: bold; background: #eee; padding: 5px 10px; border-radius: 5px; }
+                            .brand { font-size: 10px; color: #e91e63; font-weight: bold; margin-bottom: 5px; text-transform: uppercase; }
+                            .product { font-size: 18px; font-weight: 900; margin-bottom: 10px; text-transform: uppercase; }
+                            .qr-img { width: 180px; height: 180px; margin: 10px 0; }
+                            .id-txt { font-family: monospace; font-size: 14px; font-weight: bold; background: #eee; padding: 4px; border-radius: 4px; }
+                            @media print {
+                                body { padding: 0; }
+                                .card { border: 1px solid #000; }
+                            }
                         </style>
                     </head>
                     <body>
-                        <div class="box">
+                        <div class="card">
                             <div class="brand">Estoque Pro</div>
-                            <div class="name">${name}</div>
-                            <img src="${qrBase64}" class="qr">
-                            <div class="id">${id}</div>
+                            <div class="product">${name}</div>
+                            <img src="${qrBase64}" class="qr-img">
+                            <div class="id-txt">${id}</div>
                         </div>
-                        <script>
-                            window.onload = function() {
-                                // Pequeno delay para garantir que o sistema de visualização do PDF carregue a imagem
-                                setTimeout(function() {
-                                    window.print();
-                                    // Removido o window.close() para evitar que o navegador mobile feche a visualização antes de gerar o PDF
-                                }, 800);
-                            };
-                        <\/script>
                     </body>
                 </html>
             `);
-            printWindow.document.close();
+            frameDoc.close();
+
+            // Disparar impressão após carregamento
+            printFrame.contentWindow.focus();
+            setTimeout(() => {
+                printFrame.contentWindow.print();
+            }, 500);
         }
 
         function filterLowStock() {
