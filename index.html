@@ -67,7 +67,6 @@
             width: 100%; max-width: 360px; text-align: center;
         }
 
-        /* Estilo crítico para impressão mobile */
         #label-preview-content {
             background: white; border: 2px dashed #eee; padding: 24px; border-radius: 16px; margin-bottom: 24px;
         }
@@ -440,8 +439,13 @@
                     } else { 
                         if(selectedProduct.image) await imgDB_Delete(selectedProduct.image);
                         selectedProduct.image = imgId; 
+                        
+                        const imgEl = document.getElementById('edit-img');
+                        // Revoke se for blob
+                        if(imgEl.src.startsWith('blob:')) URL.revokeObjectURL(imgEl.src);
+                        
                         const url = URL.createObjectURL(blob);
-                        document.getElementById('edit-img').src = url;
+                        imgEl.src = url;
                     }
                 }
             } catch (e) { console.error("Erro na IA:", e); }
@@ -485,7 +489,6 @@
             }, 300);
         }
 
-        // Função de impressão aprimorada para Mobile
         function executePrint() { 
             const printContent = document.getElementById('label-preview-content');
             if (printContent) {
@@ -555,7 +558,10 @@
                         if (blob) {
                             const url = URL.createObjectURL(blob);
                             const cont = document.getElementById(imgId);
-                            if (cont) cont.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+                            if (cont) {
+                                // Limpeza de blobs antigos da lista se necessário (opcional aqui para não poluir, mas recomendado se a lista for atualizada constantemente)
+                                cont.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+                            }
                         }
                     });
                 }
@@ -588,6 +594,10 @@
             document.getElementById('edit-qty-display').innerText = tempQty;
             
             const imgEl = document.getElementById('edit-img');
+            
+            // Revoke se a imagem anterior for blob
+            if(imgEl.src.startsWith('blob:')) URL.revokeObjectURL(imgEl.src);
+            
             imgEl.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z'/%3E%3C/svg%3E";
             
             if (selectedProduct.image) {
@@ -600,7 +610,11 @@
             lucide.createIcons();
         }
 
-        function closeEditModal() { document.getElementById('modal-edit').style.display = 'none'; }
+        function closeEditModal() { 
+            const imgEl = document.getElementById('edit-img');
+            if(imgEl.src.startsWith('blob:')) URL.revokeObjectURL(imgEl.src);
+            document.getElementById('modal-edit').style.display = 'none'; 
+        }
         
         function saveEditChanges() {
             const idx = products.findIndex(p => p.id === selectedProduct.id);
@@ -648,8 +662,12 @@
                 } else { 
                     if(selectedProduct.image) await imgDB_Delete(selectedProduct.image);
                     selectedProduct.image = imgId; 
+                    
+                    const imgEl = document.getElementById('edit-img');
+                    if(imgEl.src.startsWith('blob:')) URL.revokeObjectURL(imgEl.src);
+                    
                     const url = URL.createObjectURL(blob);
-                    document.getElementById('edit-img').src = url;
+                    imgEl.src = url;
                 }
             };
             r.readAsDataURL(f);
@@ -670,16 +688,25 @@
         }
 
         async function showImagePreview() {
-            document.getElementById('image-placeholder').classList.add('hidden');
+            const container = document.getElementById('image-preview-container');
+            const imgEl = document.getElementById('image-preview');
+            const placeholder = document.getElementById('image-placeholder');
+            
+            placeholder.classList.add('hidden');
+            
             const blob = await imgDB_Get(currentPhotoId);
             if (blob) {
+                if(imgEl.src.startsWith('blob:')) URL.revokeObjectURL(imgEl.src);
                 const url = URL.createObjectURL(blob);
-                document.getElementById('image-preview').src = url;
-                document.getElementById('image-preview-container').classList.remove('hidden');
+                imgEl.src = url;
+                container.classList.remove('hidden');
             }
         }
 
         function clearImage() { 
+            const imgEl = document.getElementById('image-preview');
+            if(imgEl.src.startsWith('blob:')) URL.revokeObjectURL(imgEl.src);
+            
             currentPhotoId = null; 
             document.getElementById('image-preview-container').classList.add('hidden'); 
             document.getElementById('image-placeholder').classList.remove('hidden'); 
